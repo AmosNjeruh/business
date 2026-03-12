@@ -1,26 +1,39 @@
 @import "tailwindcss";
 
+/* ── Tailwind v4 dark-mode strategy: toggle .dark on <html> ── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ── Base tokens ── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light dark;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ── Body defaults – dark on initial render (anti-flash handled in _document) ── */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: #020617; /* slate-950 */
+  color: #f1f5f9;            /* slate-100 */
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ── Thin custom scrollbar ── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+*::-webkit-scrollbar { width: 5px; height: 5px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
+/* ── Light-mode overrides (when .dark class is NOT on <html>) ── */
+html:not(.dark) body {
+  background-color: #f8fafc; /* slate-50 */
+  color: #0f172a;            /* slate-900 */
+}
+
+html:not(.dark) *::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.12);
 }
