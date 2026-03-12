@@ -69,9 +69,7 @@ const Header: React.FC<HeaderProps> = ({
           </button>
 
           <Link href="/admin" className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-emerald-400 via-cyan-400 to-indigo-500 flex items-center justify-center text-[10px] font-black text-slate-950 shadow-lg shadow-emerald-500/30 flex-shrink-0">
-              T360
-            </div>
+           
             <div className="hidden sm:flex flex-col leading-tight">
               <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                 Business Suite
