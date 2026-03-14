@@ -62,14 +62,7 @@ const WorkValidationPage: React.FC = () => {
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [showBulkApproveModal, setShowBulkApproveModal] = useState(false)
   const [workStatusFilter, setWorkStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending')
-  // Initialize viewMode from localStorage or default to 'cards'
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('work-validation-view-mode')
-      return (saved === 'table' || saved === 'cards') ? saved : 'cards'
-    }
-    return 'cards'
-  })
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
   const [showFilters, setShowFilters] = useState(false)
   const [sortField, setSortField] = useState<SortField>('date')
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
@@ -595,12 +588,7 @@ const WorkValidationPage: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => {
-                      setViewMode('table')
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('work-validation-view-mode', 'table')
-                      }
-                    }}
+                    onClick={() => setViewMode('table')}
                     className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 transition-colors ${
                       viewMode === 'table'
                         ? 'bg-green-600 text-white border-green-600'
@@ -612,12 +600,7 @@ const WorkValidationPage: React.FC = () => {
                     <span className="hidden sm:inline">Table</span>
                   </button>
                   <button
-                    onClick={() => {
-                      setViewMode('cards')
-                      if (typeof window !== 'undefined') {
-                        localStorage.setItem('work-validation-view-mode', 'cards')
-                      }
-                    }}
+                    onClick={() => setViewMode('cards')}
                     className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 transition-colors ${
                       viewMode === 'cards'
                         ? 'bg-green-600 text-white border-green-600'
@@ -939,9 +922,8 @@ const WorkValidationPage: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sortedApplications.map((app) => {
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sortedApplications.map((app) => {
                     const totalPosts = app.posts?.length || 0
                     const validatedCount =
                       Array.isArray(app.posts) ? app.posts.filter((p: any) => p.validated).length : 0
@@ -1086,62 +1068,8 @@ const WorkValidationPage: React.FC = () => {
                         </div>
                       </div>
                     )
-                    })}
-                  </div>
-                  {/* Pagination for Cards View */}
-                  {pagination && pagination.totalPages > 1 && (
-                  <div className="mt-6 bg-gray-50 dark:bg-gray-900 px-4 py-3 flex items-center justify-between border border-gray-200 dark:border-gray-700 rounded-xl">
-                    <div className="flex-1 flex justify-between sm:hidden">
-                      <button
-                        onClick={() => fetchApplications(pagination.page - 1, pagination.limit)}
-                        disabled={pagination.page === 1}
-                        className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={() => fetchApplications(pagination.page + 1, pagination.limit)}
-                        disabled={pagination.page === pagination.totalPages}
-                        className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </div>
-                    <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Showing{' '}
-                        <span className="font-medium">
-                          {applications.length > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0}
-                        </span>{' '}
-                        to{' '}
-                        <span className="font-medium">
-                          {(pagination.page - 1) * pagination.limit + applications.length}
-                        </span>{' '}
-                        of <span className="font-medium">{pagination.total}</span> results
-                      </p>
-                      <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                        <button
-                          onClick={() => fetchApplications(pagination.page - 1, pagination.limit)}
-                          disabled={pagination.page === 1}
-                          className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <FaChevronLeft className="h-4 w-4" />
-                        </button>
-                        <div className="flex items-center px-4 py-2 border-t border-b border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Page {pagination.page} of {pagination.totalPages}
-                        </div>
-                        <button
-                          onClick={() => fetchApplications(pagination.page + 1, pagination.limit)}
-                          disabled={pagination.page === pagination.totalPages}
-                          className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <FaChevronRight className="h-4 w-4" />
-                        </button>
-                      </nav>
-                    </div>
-                  </div>
-                  )}
-                </>
+                  })}
+                </div>
               )}
             </>
           )}

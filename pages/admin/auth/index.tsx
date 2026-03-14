@@ -5,41 +5,17 @@
 import React, { FormEvent, useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import Image from "next/image";
 import toast from "react-hot-toast";
 import {
   FaEnvelope,
   FaLock,
   FaUser,
-  FaBuilding,
-  FaChartLine,
-  FaUsers,
   FaCheckCircle,
 } from "react-icons/fa";
 import { login, register, setToken, setUser, getCurrentUser, RegisterData } from "@/services/auth";
 
 type Tab = "login" | "register";
-type LocalRole = "AGENCY" | "VENDOR" | "PARTNER";
-
-const ROLE_OPTIONS: { value: LocalRole; label: string; hint: string; icon: React.ElementType }[] = [
-  {
-    value: "AGENCY",
-    label: "Agency",
-    hint: "Manage multiple brands & campaigns",
-    icon: FaBuilding,
-  },
-  {
-    value: "VENDOR",
-    label: "Vendor",
-    hint: "Run campaigns for a single brand",
-    icon: FaChartLine,
-  },
-  {
-    value: "PARTNER",
-    label: "Partner / Creator",
-    hint: "Drive sales & content for brands",
-    icon: FaUsers,
-  },
-];
 
 export default function AdminAuthPage() {
   const router = useRouter();
@@ -54,7 +30,6 @@ export default function AdminAuthPage() {
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [regRole, setRegRole] = useState<LocalRole>("AGENCY");
 
   // Redirect if already logged in
   useEffect(() => {
@@ -89,14 +64,12 @@ export default function AdminAuthPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const backendRole: RegisterData["role"] =
-        regRole === "AGENCY" ? "VENDOR" : (regRole as RegisterData["role"]);
-
+      // Business Suite is only for vendors
       const auth = await register({
         email: regEmail,
         password: regPassword,
         name: regName,
-        role: backendRole,
+        role: "VENDOR",
       });
       setToken(auth.token);
       setUser(auth.user);
@@ -122,13 +95,13 @@ export default function AdminAuthPage() {
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
 
         <Link href="/" className="flex items-center gap-3 relative z-10">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-emerald-400 via-cyan-400 to-indigo-500 flex items-center justify-center text-xs font-black text-slate-950 shadow-lg shadow-emerald-500/30">
-            T360
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white">Trend360</p>
-            <p className="text-[10px] text-slate-500">Business Suite</p>
-          </div>
+          <Image
+            src="/logo.png"
+            alt="Trend360"
+            width={40}
+            height={40}
+            className="h-10 w-10 object-contain"
+          />
         </Link>
 
         <div className="relative z-10 space-y-8">
@@ -173,9 +146,13 @@ export default function AdminAuthPage() {
         <div className="w-full max-w-md mx-auto">
           {/* Mobile logo */}
           <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-tr from-emerald-400 via-cyan-400 to-indigo-500 flex items-center justify-center text-[10px] font-black text-slate-950">
-              T360
-            </div>
+            <Image
+              src="/logo.png"
+              alt="Trend360"
+              width={32}
+              height={32}
+              className="h-8 w-8 object-contain"
+            />
             <span className="text-sm font-bold text-white">Trend360 Business Suite</span>
           </Link>
 
@@ -263,8 +240,7 @@ export default function AdminAuthPage() {
               <div>
                 <p className="text-lg font-semibold text-white mb-0.5">Get started free</p>
                 <p className="text-xs text-slate-400">
-                  Agencies, vendors, and partners — everyone starts here. Pick how you primarily
-                  operate today.
+                  Create your Business Suite account to manage brands, campaigns, and partners.
                 </p>
               </div>
 
@@ -295,35 +271,6 @@ export default function AdminAuthPage() {
                 placeholder="Min 6 characters"
                 icon={FaLock}
               />
-
-              {/* Role selector */}
-              <div>
-                <p className="text-xs font-medium text-slate-200 mb-2">
-                  How will you use Trend360?
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  {ROLE_OPTIONS.map(({ value, label, hint, icon: Icon }) => (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => setRegRole(value)}
-                      className={`rounded-xl border p-3 text-left transition-all ${
-                        regRole === value
-                          ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-100"
-                          : "border-white/10 bg-white/3 text-slate-300 hover:border-white/20 hover:bg-white/5"
-                      }`}
-                    >
-                      <Icon
-                        className={`h-3.5 w-3.5 mb-1.5 ${
-                          regRole === value ? "text-emerald-400" : "text-slate-500"
-                        }`}
-                      />
-                      <p className="text-[11px] font-semibold">{label}</p>
-                      <p className="text-[9px] text-slate-400 mt-0.5 leading-snug">{hint}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
 
               <SubmitButton loading={isLoading} label="Create Business Suite account" />
 
