@@ -180,9 +180,9 @@ export const getPartnerNiches = async () => {
   return response.data.data;
 };
 
-export const getFavoritePartners = async () => {
-  const response = await Api.get<{ data: any[] }>('/vendor/partners/favorites');
-  return response.data.data;
+export const getFavoritePartners = async (params?: { page?: number; limit?: number; category?: string }) => {
+  const response = await Api.get<{ data: any[]; pagination?: any }>('/vendor/partners/favorites', { params });
+  return response.data;
 };
 
 export const getPartnersWorkedWith = async () => {
@@ -191,12 +191,12 @@ export const getPartnersWorkedWith = async () => {
 };
 
 export const getBookmarkCategories = async () => {
-  const response = await Api.get<{ data: any[] }>('/vendor/partners/bookmarks/categories');
+  const response = await Api.get<{ data: any }>('/vendor/partners/bookmarks/categories');
   return response.data.data;
 };
 
-export const addPartnerToFavorites = async (partnerId: string) => {
-  const response = await Api.post<{ data: any }>(`/vendor/partners/${partnerId}/favorite`, {});
+export const addPartnerToFavorites = async (partnerId: string, category?: string) => {
+  const response = await Api.post<{ data: any }>(`/vendor/partners/${partnerId}/favorite`, { category });
   return response.data.data;
 };
 
@@ -205,8 +205,8 @@ export const removePartnerFromFavorites = async (partnerId: string) => {
   return response.data.data;
 };
 
-export const updateBookmarkCategory = async (partnerId: string, categoryId: string) => {
-  const response = await Api.put<{ data: any }>(`/vendor/partners/${partnerId}/bookmark`, { categoryId });
+export const updateBookmarkCategory = async (partnerId: string, category?: string) => {
+  const response = await Api.put<{ data: any }>(`/vendor/partners/${partnerId}/bookmark`, { category });
   return response.data.data;
 };
 
@@ -425,6 +425,43 @@ export const getBrands = async () => {
     } as any,
   });
   return response.data.data;
+};
+
+// ─── Emails ───────────────────────────────────────────────────────────────
+
+export interface SendVendorEmailData {
+  recipients: string[];
+  subject: string;
+  message: string;
+  isHtml?: boolean;
+  recipientType?: 'brand' | 'partner';
+}
+
+export interface GetVendorEmailHistoryParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'sent' | 'scheduled' | 'draft';
+}
+
+export interface GetVendorEmailRecipientsParams {
+  type?: 'brand' | 'partner';
+  search?: string;
+}
+
+export const sendVendorEmails = async (data: SendVendorEmailData) => {
+  const response = await Api.post<{ success: boolean; data: any; message?: string }>('/vendor/emails/send', data);
+  return response.data;
+};
+
+export const getVendorEmailHistory = async (params: GetVendorEmailHistoryParams = {}) => {
+  const response = await Api.get<{ success: boolean; data: any; message?: string }>('/vendor/emails/history', { params });
+  return response.data;
+};
+
+export const getVendorEmailRecipients = async (params: GetVendorEmailRecipientsParams = {}) => {
+  const response = await Api.get<{ data: any }>('/vendor/emails/recipients', { params });
+  return response.data;
 };
 
 export const getBrand = async (id: string) => {
@@ -720,6 +757,17 @@ export const testWebhook = async (id: string) => {
 
 export const getWebhookDeliveries = async (id: string, params: { page?: number; limit?: number } = {}) => {
   const response = await Api.get<{ data: WebhookDelivery[]; pagination: any }>(`/vendor/webhooks/${id}/deliveries`, { params });
+  return response.data;
+};
+
+// ─── Embeds ──────────────────────────────────────────────────────────────────
+
+/**
+ * Proxy TikTok oEmbed via the Express API (avoids browser CORS restrictions)
+ * GET /api/public/tiktok-oembed?url=...
+ */
+export const getTikTokOembed = async (url: string): Promise<{ html?: string; error?: string }> => {
+  const response = await Api.get('/public/tiktok-oembed', { params: { url } });
   return response.data;
 };
 
@@ -1173,6 +1221,10 @@ export default {
   createBrand,
   updateBrand,
   deleteBrand,
+  // Emails
+  sendVendorEmails,
+  getVendorEmailHistory,
+  getVendorEmailRecipients,
   // Analytics
   getAnalytics,
   getCampaignAnalytics,
@@ -1281,4 +1333,6 @@ export default {
   exportApplications,
   exportPartners,
   exportAnalytics,
+  // Embeds
+  getTikTokOembed,
 };

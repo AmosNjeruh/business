@@ -7,7 +7,7 @@ import { useRouter } from 'next/router';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import AdminLayout from '@/components/admin/Layout';
-import { getPartner, inviteInfluencer, getCampaigns } from '@/services/vendor';
+import { getPartner, inviteInfluencer, getCampaigns, getFavoritePartners, addPartnerToFavorites, removePartnerFromFavorites, getBookmarkCategories, updateBookmarkCategory } from '@/services/vendor';
 import {
   FaArrowLeft,
   FaSpinner,
@@ -36,6 +36,8 @@ import {
   FaFire,
   FaMedal,
   FaTimes,
+  FaBookmark,
+  FaFolder,
 } from 'react-icons/fa';
 
 function getInitials(name?: string | null) {
@@ -197,10 +199,35 @@ function formatDate(dateString: string | Date) {
   });
 }
 
-function getEngagementRate(partner: any) {
-  if (!partner.socialMediaAccounts || partner.socialMediaAccounts.length === 0) return 0;
-  const totalFollowers = partner.socialMediaAccounts.reduce((sum: number, acc: any) => sum + (acc.followers || 0), 0);
-  return Math.min(Math.round((totalFollowers / 1000) * 2.5), 100);
+/**
+ * Calculate overall engagement rate from social media accounts
+ * Returns weighted average based on followers, or null if no engagement data available
+ */
+function getEngagementRate(partner: any): number | null {
+  const accounts = partner.socialMediaAccounts || [];
+  if (!accounts || accounts.length === 0) return null;
+
+  // Filter accounts that have engagementRate data
+  const accountsWithEngagement = accounts.filter(
+    (acc: any) => acc.engagementRate != null && typeof acc.engagementRate === 'number' && !isNaN(acc.engagementRate)
+  );
+
+  if (accountsWithEngagement.length === 0) return null;
+
+  // Calculate weighted average based on followers
+  let totalWeightedEngagement = 0;
+  let totalFollowers = 0;
+
+  accountsWithEngagement.forEach((acc: any) => {
+    const followers = acc.followers || 0;
+    const engagementRate = acc.engagementRate || 0;
+    totalWeightedEngagement += engagementRate * followers;
+    totalFollowers += followers;
+  });
+
+  if (totalFollowers === 0) return null;
+
+  return totalWeightedEngagement / totalFollowers;
 }
 
 export default function PartnerProfilePage() {
@@ -213,15 +240,34 @@ export default function PartnerProfilePage() {
   const [selectedCampaign, setSelectedCampaign] = useState('');
   const [isCurating, setIsCurating] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [isCurated, setIsCurated] = useState(false);
+  const [curateCategory, setCurateCategory] = useState<string | null>(null);
+  const [bookmarkCategories, setBookmarkCategories] = useState<any[]>([]);
+  const [showCurateCategoryModal, setShowCurateCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isTogglingCurate, setIsTogglingCurate] = useState(false);
 
   useEffect(() => {
     if (!id || typeof id !== 'string') return;
     (async () => {
       try {
         setIsLoading(true);
-        const [p, c] = await Promise.all([getPartner(id), getCampaigns({ limit: 100 })]);
+        const [p, c, favoritesData, categoriesData] = await Promise.all([
+          getPartner(id),
+          getCampaigns({ limit: 100 }),
+          getFavoritePartners({ limit: 10000 }).catch(() => ({ data: [] })),
+          getBookmarkCategories().catch(() => ({ categories: [] })),
+        ]);
         setPartner(p);
         setCampaigns(c.data || []);
+        setBookmarkCategories(categoriesData.categories || []);
+        
+        // Check if partner is curated
+        const favorite = (favoritesData.data || []).find((fav: any) => fav.id === id);
+        if (favorite) {
+          setIsCurated(true);
+          setCurateCategory(favorite.bookmarkCategory || null);
+        }
       } catch (err: any) {
         toast.error('Failed to load partner profile');
         router.push('/admin/partners');
@@ -243,6 +289,59 @@ export default function PartnerProfilePage() {
       toast.error(err?.response?.data?.error || 'Failed to curate');
     } finally {
       setIsCurating(false);
+    }
+  };
+
+  const handleToggleCurate = async (category?: string) => {
+    if (!partner || !id || typeof id !== 'string') return;
+    
+    setIsTogglingCurate(true);
+    try {
+      if (isCurated) {
+        await removePartnerFromFavorites(id);
+        setIsCurated(false);
+        setCurateCategory(null);
+        toast.success('Partner removed from curated');
+      } else {
+        await addPartnerToFavorites(id, category);
+        setIsCurated(true);
+        setCurateCategory(category || null);
+        toast.success('Partner added to curated');
+      }
+      
+      // Reload bookmark categories
+      const categoriesData = await getBookmarkCategories().catch(() => ({ categories: [] }));
+      setBookmarkCategories(categoriesData.categories || []);
+      
+      setShowCurateCategoryModal(false);
+      setNewCategoryName('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to update curated status');
+    } finally {
+      setIsTogglingCurate(false);
+    }
+  };
+
+  const handleUpdateCurateCategory = async (category?: string) => {
+    if (!partner || !id || typeof id !== 'string') return;
+    
+    setIsTogglingCurate(true);
+    try {
+      const categoryToUse = newCategoryName.trim() || category || undefined;
+      await updateBookmarkCategory(id, categoryToUse);
+      setCurateCategory(categoryToUse || null);
+      toast.success('Curate category updated');
+      
+      // Reload bookmark categories
+      const categoriesData = await getBookmarkCategories().catch(() => ({ categories: [] }));
+      setBookmarkCategories(categoriesData.categories || []);
+      
+      setShowCurateCategoryModal(false);
+      setNewCategoryName('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Failed to update category');
+    } finally {
+      setIsTogglingCurate(false);
     }
   };
 
@@ -335,9 +434,14 @@ export default function PartnerProfilePage() {
                               {n}
                             </span>
                           ))}
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                          {getEngagementRate(partner)}% Engagement
-                        </span>
+                        {(() => {
+                          const engagementRate = getEngagementRate(partner);
+                          return engagementRate !== null ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                              {engagementRate.toFixed(1)}% Engagement
+                            </span>
+                          ) : null;
+                        })()}
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${tier.color}`}>
                           {renderTierIcon(tier)}
                           <span className="ml-1">{tier.name} Creator</span>
@@ -353,6 +457,24 @@ export default function PartnerProfilePage() {
                       >
                         <FaBullhorn className="h-4 w-4 mr-2" />
                         Curate for Campaign
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (isCurated) {
+                            setShowCurateCategoryModal(true);
+                          } else {
+                            setShowCurateCategoryModal(true);
+                          }
+                        }}
+                        disabled={isTogglingCurate}
+                        className={`inline-flex items-center px-4 py-2 border text-sm font-medium rounded-lg transition-colors ${
+                          isCurated
+                            ? 'bg-purple-600 text-white hover:bg-purple-700 border-purple-600'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <FaBookmark className={`h-4 w-4 mr-2 ${isCurated ? 'fill-current' : ''}`} />
+                        {isTogglingCurate ? 'Loading...' : isCurated ? (curateCategory ? `Curated (${curateCategory})` : 'Curated') : 'Add to Curated'}
                       </button>
                     </div>
                   </div>
@@ -866,6 +988,102 @@ export default function PartnerProfilePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Curate Category Modal */}
+      {showCurateCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onClick={() => {
+            setShowCurateCategoryModal(false);
+            setNewCategoryName('');
+          }} />
+          <div className="relative w-full max-w-md rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+            <button
+              onClick={() => {
+                setShowCurateCategoryModal(false);
+                setNewCategoryName('');
+              }}
+              className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+            >
+              <FaTimes className="h-4 w-4" />
+            </button>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+              {isCurated ? 'Update Curate Category' : 'Add to Curated'}
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-5">
+              {isCurated ? 'Update the category for this curated partner' : 'Add this partner to your curated list'}
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Category (optional)
+                </label>
+                <select
+                  value={curateCategory || ''}
+                  onChange={(e) => setCurateCategory(e.target.value || null)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50"
+                >
+                  <option value="">No Category (Uncategorized)</option>
+                  {bookmarkCategories.map((cat: any) => (
+                    <option key={cat.name} value={cat.name}>
+                      {cat.name} ({cat.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Or create new category
+                </label>
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Category name"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={() => {
+                    if (isCurated) {
+                      const categoryToUse = newCategoryName.trim() || curateCategory || undefined;
+                      handleUpdateCurateCategory(categoryToUse);
+                    } else {
+                      const categoryToUse = newCategoryName.trim() || curateCategory || undefined;
+                      handleToggleCurate(categoryToUse);
+                    }
+                  }}
+                  disabled={isTogglingCurate}
+                  className="flex-1 px-4 py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                >
+                  {isTogglingCurate ? <FaSpinner className="animate-spin h-4 w-4 mx-auto" /> : isCurated ? 'Update' : 'Add'}
+                </button>
+                {isCurated && (
+                  <button
+                    onClick={() => handleToggleCurate()}
+                    disabled={isTogglingCurate}
+                    className="px-4 py-2.5 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowCurateCategoryModal(false);
+                    setNewCategoryName('');
+                  }}
+                  className="px-4 py-2.5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

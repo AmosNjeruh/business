@@ -20,6 +20,8 @@ import {
 import { getCurrentUser, logout } from "@/services/auth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBrand } from "@/contexts/BrandContext";
+import { getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } from "@/services/vendor";
+import toast from "react-hot-toast";
 
 interface HeaderProps {
   isMobileMenuOpen: boolean;
@@ -36,11 +38,89 @@ const Header: React.FC<HeaderProps> = ({
   const [user, setUser] = useState<any>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showBrandMenu, setShowBrandMenu] = useState(false);
-  const [notifications] = useState(3); // placeholder count
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   useEffect(() => {
     setUser(getCurrentUser());
+    fetchUnreadCount();
+    
+    // Refresh unread count every 30 seconds
+    const interval = setInterval(() => {
+      fetchUnreadCount();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (showNotifications) {
+      fetchNotifications();
+    }
+  }, [showNotifications]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const count = await getUnreadNotificationCount();
+      setUnreadCount(count);
+    } catch (error) {
+      console.error("Failed to fetch unread count", error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      setIsLoadingNotifications(true);
+      const result = await getNotifications({ limit: 10 });
+      setNotifications(result.data || []);
+    } catch (error) {
+      console.error("Failed to fetch notifications", error);
+      toast.error("Failed to load notifications");
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await markNotificationRead(notificationId);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error("Failed to mark notification as read", error);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnreadCount(0);
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      console.error("Failed to mark all as read", error);
+      toast.error("Failed to mark all as read");
+    }
+  };
+
+  const formatNotificationTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   const handleLogout = () => {
     logout();
@@ -190,14 +270,105 @@ const Header: React.FC<HeaderProps> = ({
           </Link>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
-            <FaBell className="h-4 w-4" />
-            {notifications > 0 && (
-              <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 text-[8px] font-bold text-white flex items-center justify-center">
-                {notifications}
-              </span>
+          <div className="relative">
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+            >
+              <FaBell className="h-4 w-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 text-[8px] font-bold text-white flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+            {showNotifications && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setShowNotifications(false)}
+                />
+                <div className="absolute right-0 top-full mt-1.5 z-20 w-80 sm:w-96 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl shadow-black/10 dark:shadow-black/40 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-200 dark:border-white/8 flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</p>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={handleMarkAllAsRead}
+                        className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {isLoadingNotifications ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-500"></div>
+                      </div>
+                    ) : notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center">
+                        <FaBell className="h-8 w-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                        <p className="text-sm text-slate-500 dark:text-slate-400">No notifications</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-slate-200 dark:divide-white/8">
+                        {notifications.map((notification) => (
+                          <button
+                            key={notification.id}
+                            onClick={() => {
+                              if (!notification.read) {
+                                handleMarkAsRead(notification.id);
+                              }
+                              setShowNotifications(false);
+                              // Navigate based on notification type
+                              if (notification.link) {
+                                router.push(notification.link);
+                              }
+                            }}
+                            className={`w-full text-left px-4 py-3 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors ${
+                              !notification.read ? "bg-emerald-50/50 dark:bg-emerald-500/5" : ""
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-shrink-0 mt-0.5">
+                                {!notification.read && (
+                                  <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-slate-900 dark:text-white line-clamp-2">
+                                  {notification.title || notification.message}
+                                </p>
+                                {notification.message && notification.title && (
+                                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                                    {notification.message}
+                                  </p>
+                                )}
+                                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                                  {formatNotificationTime(notification.createdAt)}
+                                </p>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {notifications.length > 0 && (
+                    <div className="px-4 py-2 border-t border-slate-200 dark:border-white/8">
+                      <Link
+                        href="/admin/messages"
+                        onClick={() => setShowNotifications(false)}
+                        className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium text-center block"
+                      >
+                        View all notifications
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
-          </button>
+          </div>
 
           {/* User dropdown */}
           <div className="relative">

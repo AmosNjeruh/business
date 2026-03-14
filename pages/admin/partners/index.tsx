@@ -7,12 +7,13 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import AdminLayout from "@/components/admin/Layout";
-import { getPartners, getInfluencers, inviteInfluencer, getCampaigns, getCategories } from "@/services/vendor";
+import { getPartners, getInfluencers, inviteInfluencer, getCampaigns, getCategories, getFavoritePartners, addPartnerToFavorites, removePartnerFromFavorites, getBookmarkCategories, updateBookmarkCategory } from "@/services/vendor";
 import {
   FaUsers, FaSearch, FaSpinner, FaStar, FaUserPlus, FaBullhorn,
   FaEnvelope, FaTimes, FaGlobe, FaInstagram, FaYoutube, FaCheck,
   FaChevronRight, FaFilter, FaList, FaTh, FaFacebookF, FaTwitter,
-  FaTiktok, FaLinkedinIn, FaCrown, FaRocket, FaFire, FaMedal,
+  FaTiktok, FaLinkedinIn, FaCrown, FaRocket, FaFire, FaMedal, FaBookmark,
+  FaFolder, FaFolderOpen, FaEdit,
 } from "react-icons/fa";
 
 function getAvatarColor(name?: string | null) {
@@ -32,6 +33,37 @@ function fmtFollowers(n?: number) {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
+}
+
+/**
+ * Calculate overall engagement rate from social media accounts
+ * Returns weighted average based on followers, or null if no engagement data available
+ */
+function getOverallEngagementRate(partner: any): number | null {
+  const accounts = partner.socialMediaAccounts || [];
+  if (!accounts || accounts.length === 0) return null;
+
+  // Filter accounts that have engagementRate data
+  const accountsWithEngagement = accounts.filter(
+    (acc: any) => acc.engagementRate != null && typeof acc.engagementRate === 'number' && !isNaN(acc.engagementRate)
+  );
+
+  if (accountsWithEngagement.length === 0) return null;
+
+  // Calculate weighted average based on followers
+  let totalWeightedEngagement = 0;
+  let totalFollowers = 0;
+
+  accountsWithEngagement.forEach((acc: any) => {
+    const followers = acc.followers || 0;
+    const engagementRate = acc.engagementRate || 0;
+    totalWeightedEngagement += engagementRate * followers;
+    totalFollowers += followers;
+  });
+
+  if (totalFollowers === 0) return null;
+
+  return totalWeightedEngagement / totalFollowers;
 }
 
 function getSocialIcon(platform: string) {
@@ -328,14 +360,64 @@ function CurateModal({
   );
 }
 
+// Helper function to generalize location (privacy-friendly)
+function generalizeLocation(demographicInfo: any): string | null {
+  if (!demographicInfo) return null;
+  
+  // If we have address components, use city and country
+  if (demographicInfo.addressComponents && Array.isArray(demographicInfo.addressComponents)) {
+    let city = '';
+    let country = '';
+    
+    demographicInfo.addressComponents.forEach((component: any) => {
+      const types = component.types || [];
+      if (types.includes('locality') || types.includes('administrative_area_level_2')) {
+        city = component.long_name || '';
+      }
+      if (types.includes('country')) {
+        country = component.long_name || '';
+      }
+    });
+    
+    if (city && country) return `${city}, ${country}`;
+    if (city) return city;
+    if (country) return country;
+  }
+  
+  // Fallback: try to extract city/country from location string
+  const location = demographicInfo.location || demographicInfo.address || '';
+  if (!location) return null;
+  
+  // Remove exact coordinates/plus codes
+  const cleaned = location.replace(/^[A-Z0-9+]+,\s*/, '').replace(/^-?\d+\.?\d*,\s*-?\d+\.?\d*\s*,?\s*/, '');
+  
+  // Try to extract city and country
+  const parts = cleaned.split(',').map((p: string) => p.trim()).filter((p: string) => p);
+  if (parts.length >= 2) {
+    return `${parts[0]}, ${parts[parts.length - 1]}`;
+  }
+  
+  return cleaned || null;
+}
+
 const AdminPartnersPage: React.FC = () => {
   const router = useRouter();
   const [partners, setPartners] = useState<any[]>([]);
+  const [allPartners, setAllPartners] = useState<any[]>([]); // Store all fetched partners for client-side filtering
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedNiche, setSelectedNiche] = useState("all");
-  const [sortBy, setSortBy] = useState<"followers" | "rating" | "name">("followers");
+  
+  // Filter states
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [nicheFilter, setNicheFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [platformFilter, setPlatformFilter] = useState<string>("all");
+  const [minFollowersFilter, setMinFollowersFilter] = useState<string>("");
+  const [maxFollowersFilter, setMaxFollowersFilter] = useState<string>("");
+  const [engagementFilter, setEngagementFilter] = useState<string>("all");
+  
+  const [sortBy, setSortBy] = useState<"followers" | "rating" | "name" | "relevance">("relevance");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showBulkInviteModal, setShowBulkInviteModal] = useState(false);
   const [curateTarget, setCurateTarget] = useState<any>(null);
@@ -343,6 +425,14 @@ const AdminPartnersPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [availableLocations, setAvailableLocations] = useState<string[]>([]);
+  const [availablePlatforms, setAvailablePlatforms] = useState<string[]>([]);
+  const [showCuratedOnly, setShowCuratedOnly] = useState(false);
+  const [curatedPartners, setCuratedPartners] = useState<Set<string>>(new Set());
+  const [bookmarkCategories, setBookmarkCategories] = useState<any[]>([]);
+  const [selectedBookmarkCategory, setSelectedBookmarkCategory] = useState<string>("all");
+  const [editingCurate, setEditingCurate] = useState<{ partnerId: string; category: string | null } | null>(null);
+  const [newCategoryName, setNewCategoryName] = useState("");
   const [pagination, setPagination] = useState<{
     page: number;
     limit: number;
@@ -350,8 +440,10 @@ const AdminPartnersPage: React.FC = () => {
     totalPages?: number;
   }>({ page: 1, limit: 18 });
   
-  // Get all niches from categories
-  const allNiches = categories.flatMap((cat) => cat.niches || []).map((n: any) => n.name);
+  // Get available niches for selected category
+  const availableNiches = categoryFilter !== "all" 
+    ? categories.find(cat => cat.name === categoryFilter)?.niches || []
+    : [];
   
   // Debounce search
   useEffect(() => {
@@ -360,6 +452,13 @@ const AdminPartnersPage: React.FC = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, [search]);
+  
+  // Reset niche filter when category changes
+  useEffect(() => {
+    if (categoryFilter === "all") {
+      setNicheFilter("all");
+    }
+  }, [categoryFilter]);
   
   // Fetch categories
   useEffect(() => {
@@ -370,7 +469,6 @@ const AdminPartnersPage: React.FC = () => {
         setCategories(data || []);
       } catch (err) {
         console.error("Failed to fetch categories:", err);
-        // Fallback to empty array - page will still work
         setCategories([]);
       } finally {
         setIsLoadingCategories(false);
@@ -379,50 +477,181 @@ const AdminPartnersPage: React.FC = () => {
     fetchCategories();
   }, []);
 
+  // Load curated partners and bookmark categories
+  useEffect(() => {
+    const loadCuratedData = async () => {
+      try {
+        const [favoritesData, categoriesData] = await Promise.all([
+          getFavoritePartners({ limit: 10000 }).catch(() => ({ data: [] })),
+          getBookmarkCategories().catch(() => ({ categories: [], uncategorizedCount: 0 })),
+        ]);
+        
+        const favoriteIds = new Set<string>((favoritesData.data || []).map((p: any) => p.id));
+        setCuratedPartners(favoriteIds);
+        setBookmarkCategories(categoriesData.categories || []);
+      } catch (err) {
+        console.error("Failed to load curated data:", err);
+      }
+    };
+    loadCuratedData();
+  }, []);
+
   const fetchPartners = useCallback(async () => {
     try {
       setIsLoading(true);
-      const params: any = { page: pagination.page, limit: pagination.limit };
+      // Fetch large dataset for client-side filtering
+      const params: any = { page: 1, limit: 10000 };
+      
       if (debouncedSearch) params.search = debouncedSearch;
-      if (selectedNiche !== "all") params.niche = selectedNiche;
+      
+      // Use category filter instead of niche for backend
+      if (categoryFilter !== "all") {
+        params.category = categoryFilter;
+      }
+      
+      // If niche is selected, use it
+      if (nicheFilter !== "all") {
+        params.niche = nicheFilter;
+      }
+      
+      // Backend follower filtering
+      if (minFollowersFilter) {
+        const parsed = parseInt(minFollowersFilter, 10);
+        if (!Number.isNaN(parsed) && parsed >= 0) {
+          params.minFollowers = parsed;
+        }
+      }
+      if (maxFollowersFilter) {
+        const parsed = parseInt(maxFollowersFilter, 10);
+        if (!Number.isNaN(parsed) && parsed >= 0) {
+          params.maxFollowers = parsed;
+        }
+      }
+      
       // Try both endpoints gracefully
       let result: any;
-      try {
-        result = await getInfluencers(params);
-      } catch {
-        result = await getPartners(params);
+      
+      if (showCuratedOnly) {
+        // Fetch curated partners
+        const curatedParams: any = { page: 1, limit: 10000 };
+        if (selectedBookmarkCategory !== "all") {
+          curatedParams.category = selectedBookmarkCategory === "uncategorized" ? "uncategorized" : selectedBookmarkCategory;
+        }
+        result = await getFavoritePartners(curatedParams);
+      } else {
+        // Fetch regular partners
+        try {
+          result = await getInfluencers(params);
+        } catch {
+          result = await getPartners(params);
+        }
       }
-      const list = result?.data || result || [];
-      setPartners(list);
-      if (result.pagination) {
-        setPagination((p) => ({ ...p, ...result.pagination }));
+      
+      let partnersData = result?.data || result || [];
+      
+      // When showing curated only, the API already returns only curated partners
+      // No need to filter again
+      
+      setAllPartners(partnersData);
+      
+      // Extract available locations and platforms
+      const locations = new Set<string>();
+      const platforms = new Set<string>();
+      
+      partnersData.forEach((partner: any) => {
+        const loc = generalizeLocation(partner.demographicInfo);
+        if (loc) locations.add(loc);
+        
+        if (Array.isArray(partner.socialMediaAccounts)) {
+          partner.socialMediaAccounts.forEach((acc: any) => {
+            if (acc?.platform) {
+              platforms.add((acc.platform as string).toLowerCase());
+            }
+          });
+        }
+      });
+      
+      setAvailableLocations(Array.from(locations).sort());
+      setAvailablePlatforms(Array.from(platforms).sort());
+      
+      // Apply client-side filters
+      let filtered = partnersData;
+      
+      // Location filter
+      if (locationFilter !== "all") {
+        filtered = filtered.filter((partner: any) => {
+          const loc = generalizeLocation(partner.demographicInfo);
+          return loc === locationFilter;
+        });
       }
-    } catch (err: any) {
-      if (err?.response?.status === 401) { router.push("/admin/auth"); return; }
-      setPartners([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [debouncedSearch, selectedNiche, pagination.page, pagination.limit, router]);
+      
+      // Platform filter
+      if (platformFilter !== "all") {
+        filtered = filtered.filter((partner: any) => {
+          const accounts = partner.socialMediaAccounts || [];
+          return accounts.some((acc: any) => 
+            (acc?.platform as string)?.toLowerCase() === platformFilter.toLowerCase()
+          );
+        });
+      }
+      
+      // Client-side follower filtering (additional to backend)
+      if (minFollowersFilter || maxFollowersFilter) {
+        filtered = filtered.filter((partner: any) => {
+          const accounts = partner.socialMediaAccounts || [];
+          const totalFollowers = accounts.reduce(
+            (sum: number, acc: any) => sum + (acc?.followers || 0),
+            0
+          );
+          
+          if (minFollowersFilter) {
+            const minParsed = parseInt(minFollowersFilter, 10);
+            if (!Number.isNaN(minParsed) && totalFollowers < minParsed) {
+              return false;
+            }
+          }
+          if (maxFollowersFilter) {
+            const maxParsed = parseInt(maxFollowersFilter, 10);
+            if (!Number.isNaN(maxParsed) && totalFollowers > maxParsed) {
+              return false;
+            }
+          }
+          return true;
+        });
+      }
+      
+      // Engagement filter
+      if (engagementFilter !== "all") {
+        filtered = filtered.filter((partner: any) => {
+          const engagementRate = getOverallEngagementRate(partner);
+          if (engagementRate === null) return false;
+          
+          const threshold = engagementFilter === "high" ? 5 : engagementFilter === "medium" ? 2 : 0;
+          return engagementRate >= threshold;
+        });
+      }
+      
+      // Niche filter (client-side by name)
+      if (nicheFilter !== "all") {
+        filtered = filtered.filter((partner: any) => {
+          const partnerNiches: string[] = Array.isArray(partner.niches) ? partner.niches : [];
+          return partnerNiches.includes(nicheFilter);
+        });
+      }
+      
+      // Calculate scores and tiers, and mark curated status
+      const processed = filtered.map((partner: any) => {
+        const score = getPartnerScore(partner);
+        const tier = getPartnerTier(score);
+        const isCurated = curatedPartners.has(partner.id);
+        return { ...partner, score, tier, isCurated };
+      });
 
-  useEffect(() => {
-    getCampaigns({ limit: 100 }).then((r) => setCampaigns(r.data || [])).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    setPagination((p) => ({ ...p, page: 1 }));
-  }, [debouncedSearch, selectedNiche]);
-
-  useEffect(() => { fetchPartners(); }, [fetchPartners]);
-
-  // Calculate scores and tiers for partners
-  const partnersWithScores = partners.map((partner) => {
-    const score = getPartnerScore(partner);
-    const tier = getPartnerTier(score);
-    return { ...partner, score, tier };
-  });
-
-  const sorted = [...partnersWithScores].sort((a, b) => {
+      // Sort
+      const sorted = [...processed].sort((a, b) => {
+        if (sortBy === "relevance") {
+          return b.score - a.score;
+        }
     if (sortBy === "followers") {
       const aFollowers = (a.socialMediaAccounts || []).reduce((sum: number, acc: any) => sum + (acc.followers || 0), 0) || a.totalFollowers || 0;
       const bFollowers = (b.socialMediaAccounts || []).reduce((sum: number, acc: any) => sum + (acc.followers || 0), 0) || b.totalFollowers || 0;
@@ -431,6 +660,125 @@ const AdminPartnersPage: React.FC = () => {
     if (sortBy === "rating") return (b.averageRating || 0) - (a.averageRating || 0);
     return (a.name || "").localeCompare(b.name || "");
   });
+      
+      setPartners(sorted);
+      
+      // Update pagination
+      const total = sorted.length;
+      const totalPages = Math.max(1, Math.ceil(total / pagination.limit));
+      const clampedPage = Math.min(pagination.page, totalPages);
+      setPagination((p) => ({
+        ...p,
+        page: clampedPage,
+        total,
+        totalPages,
+      }));
+    } catch (err: any) {
+      if (err?.response?.status === 401) { router.push("/admin/auth"); return; }
+      setPartners([]);
+      setAllPartners([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    debouncedSearch,
+    categoryFilter,
+    nicheFilter,
+    locationFilter,
+    platformFilter,
+    minFollowersFilter,
+    maxFollowersFilter,
+    engagementFilter,
+    sortBy,
+    showCuratedOnly,
+    selectedBookmarkCategory,
+    curatedPartners,
+    router,
+  ]);
+
+  useEffect(() => {
+    getCampaigns({ limit: 100 }).then((r) => setCampaigns(r.data || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    setPagination((p) => ({ ...p, page: 1 }));
+  }, [
+    debouncedSearch,
+    categoryFilter,
+    nicheFilter,
+    locationFilter,
+    platformFilter,
+    minFollowersFilter,
+    maxFollowersFilter,
+    engagementFilter,
+    showCuratedOnly,
+    selectedBookmarkCategory,
+  ]);
+
+  useEffect(() => { fetchPartners(); }, [fetchPartners]);
+
+  // Curate handlers
+  const handleCurate = async (partnerId: string, category?: string) => {
+    try {
+      await addPartnerToFavorites(partnerId, category);
+      setCuratedPartners(prev => new Set(prev).add(partnerId));
+      toast.success("Partner curated successfully");
+      
+      // Reload bookmark categories
+      const categoriesData = await getBookmarkCategories().catch(() => ({ categories: [] }));
+      setBookmarkCategories(categoriesData.categories || []);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to curate partner");
+    }
+  };
+
+  const handleUncurate = async (partnerId: string) => {
+    try {
+      await removePartnerFromFavorites(partnerId);
+      setCuratedPartners(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(partnerId);
+        return newSet;
+      });
+      toast.success("Partner removed from curated");
+      
+      // Reload bookmark categories
+      const categoriesData = await getBookmarkCategories().catch(() => ({ categories: [] }));
+      setBookmarkCategories(categoriesData.categories || []);
+      
+      if (showCuratedOnly) {
+        fetchPartners();
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to remove curated partner");
+    }
+  };
+
+  const handleUpdateCurateCategory = async (partnerId: string, category: string | null) => {
+    try {
+      await updateBookmarkCategory(partnerId, category || undefined);
+      toast.success("Curate category updated");
+      
+      // Reload bookmark categories
+      const categoriesData = await getBookmarkCategories().catch(() => ({ categories: [] }));
+      setBookmarkCategories(categoriesData.categories || []);
+      
+      // Reload partners if showing curated
+      if (showCuratedOnly) {
+        fetchPartners();
+      }
+      
+      setEditingCurate(null);
+      setNewCategoryName("");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || "Failed to update category");
+    }
+  };
+
+  // Client-side pagination
+  const startIndex = (pagination.page - 1) * pagination.limit;
+  const endIndex = Math.min(startIndex + pagination.limit, partners.length);
+  const paginatedPartners = partners.slice(startIndex, endIndex);
 
   return (
     <AdminLayout>
@@ -476,60 +824,317 @@ const AdminPartnersPage: React.FC = () => {
               className="flex items-center gap-2 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/30 hover:opacity-90 transition-all whitespace-nowrap">
               <FaUserPlus className="h-3.5 w-3.5" /> Invite Partner
             </button>
+            <Link href="/admin/partners/curated"
+              className="flex items-center gap-2 bg-purple-100 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-300 font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-purple-200 dark:hover:bg-purple-500/20 transition-all whitespace-nowrap">
+              <FaBookmark className="h-3.5 w-3.5" /> Curated Partners
+              {curatedPartners.size > 0 && (
+                <span className="ml-1 px-2 py-0.5 bg-purple-600 text-white rounded-full text-xs font-bold">
+                  {curatedPartners.size}
+                </span>
+              )}
+            </Link>
           </div>
         </div>
 
-        {/* Niche filter chips */}
-        <div className="flex flex-wrap gap-2">
-          <button onClick={() => setSelectedNiche("all")}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-              selectedNiche === "all"
-                ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300"
-                : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-            }`}>
-            All Niches
-          </button>
+        {/* Filters and Search */}
+        <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-6 shadow-sm">
+          {/* Search and Quick Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div className="lg:col-span-2 relative">
+              <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
+              <input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPagination((p) => ({ ...p, page: 1 }));
+                }}
+                placeholder="Search by name, niche, or email…"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/15"
+              />
+            </div>
+
+            {/* Location Filter */}
+            <div>
+              <select
+                value={locationFilter}
+                onChange={(e) => {
+                  setLocationFilter(e.target.value);
+                  setPagination((p) => ({ ...p, page: 1 }));
+                }}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50"
+              >
+                <option value="all">All Locations</option>
+                {availableLocations.map(location => (
+                  <option key={location} value={location}>{location}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort */}
+            <div>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value as any);
+                  setPagination((p) => ({ ...p, page: 1 }));
+                }}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50"
+              >
+                <option value="relevance">Sort by Relevance</option>
+                <option value="followers">Sort by Followers</option>
+                <option value="rating">Sort by Rating</option>
+                <option value="name">Sort A-Z</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Category Filters */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Filter by Categories</h3>
           {isLoadingCategories ? (
-            <div className="flex items-center gap-2 px-3 py-1.5">
-              <FaSpinner className="animate-spin h-3 w-3 text-slate-400" />
-              <span className="text-xs text-slate-400">Loading niches...</span>
+                <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                  <FaSpinner className="animate-spin h-4 w-4" />
+                  <span className="text-sm">Loading categories...</span>
             </div>
           ) : (
-            allNiches.map((n) => (
-              <button key={n} onClick={() => setSelectedNiche(n)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                  selectedNiche === n
-                    ? "bg-emerald-100 dark:bg-emerald-500/20 border-emerald-400 dark:border-emerald-500/50 text-emerald-700 dark:text-emerald-300"
-                    : "bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                }`}>
-                {n}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setCategoryFilter("all");
+                      setNicheFilter("all");
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      categoryFilter === "all"
+                        ? "bg-emerald-500 text-white shadow-md"
+                        : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    All Categories
               </button>
-            ))
+                  {categories.map(category => (
+                    <button
+                      key={category.id || category.name}
+                      onClick={() => {
+                        setCategoryFilter(category.name);
+                        setNicheFilter("all");
+                        setPagination((p) => ({ ...p, page: 1 }));
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                        categoryFilter === category.name
+                          ? "bg-emerald-500 text-white shadow-md"
+                          : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
           )}
         </div>
 
-        {/* Search + sort bar */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1 relative">
-            <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, niche, or email…"
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/15" />
+            {/* Niche Filter - Only show when a category is selected */}
+            {categoryFilter !== "all" && availableNiches.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+                  Filter by Niche ({categoryFilter})
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setNicheFilter("all");
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      nicheFilter === "all"
+                        ? "bg-purple-500 text-white shadow-md"
+                        : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    All Niches
+                  </button>
+                  {availableNiches.map((niche: any) => (
+                    <button
+                      key={niche.id || niche.name}
+                      onClick={() => {
+                        setNicheFilter(niche.name);
+                        setPagination((p) => ({ ...p, page: 1 }));
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                        nicheFilter === niche.name
+                          ? "bg-purple-500 text-white shadow-md"
+                          : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {niche.name}
+                    </button>
+                  ))}
           </div>
-          <div className="flex gap-2">
-            <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5">
-              <FaFilter className="h-3 w-3 text-slate-400 dark:text-slate-500" />
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-transparent text-sm text-slate-700 dark:text-slate-300 outline-none">
-                <option value="followers">Most Followers</option>
-                <option value="rating">Highest Rated</option>
-                <option value="name">A-Z</option>
+              </div>
+            )}
+
+            {/* Audience Filters */}
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">
+                Audience Filters
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                {/* Social platform */}
+                <select
+                  value={platformFilter}
+                  onChange={(e) => {
+                    setPlatformFilter(e.target.value);
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 text-sm"
+                >
+                  <option value="all">All Platforms</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="twitter">Twitter / X</option>
+                  {availablePlatforms
+                    .filter(p => !["instagram", "tiktok", "youtube", "facebook", "twitter", "x"].includes(p.toLowerCase()))
+                    .map((p) => (
+                      <option key={p} value={p}>
+                        {p.charAt(0).toUpperCase() + p.slice(1)}
+                      </option>
+                    ))}
               </select>
+
+                {/* Min followers */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Min followers</span>
+                  <input
+                    type="number"
+                    value={minFollowersFilter}
+                    onChange={(e) => {
+                      setMinFollowersFilter(e.target.value);
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    placeholder="e.g. 10000"
+                    className="w-28 px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-xs"
+                  />
             </div>
-            <button onClick={() => { setPagination((p) => ({ ...p, page: 1 })); }}
-              className="px-4 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30 text-sm font-medium hover:bg-emerald-100 dark:hover:bg-emerald-500/25 transition-colors">
-              Refresh
-            </button>
+
+                {/* Max followers */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Max followers</span>
+                  <input
+                    type="number"
+                    value={maxFollowersFilter}
+                    onChange={(e) => {
+                      setMaxFollowersFilter(e.target.value);
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    placeholder="e.g. 100000"
+                    className="w-28 px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-xs"
+                  />
+                </div>
+
+                {/* Engagement filter */}
+                <select
+                  value={engagementFilter}
+                  onChange={(e) => {
+                    setEngagementFilter(e.target.value);
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
+                  className="px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 text-sm"
+                >
+                  <option value="all">All Engagement</option>
+                  <option value="high">High (5%+)</option>
+                  <option value="medium">Medium (2-5%)</option>
+                  <option value="low">Low (&lt;2%)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Curated Filter Toggle */}
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setShowCuratedOnly(!showCuratedOnly);
+                  setPagination((p) => ({ ...p, page: 1 }));
+                }}
+                className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                  showCuratedOnly
+                    ? "bg-purple-500 text-white shadow-md"
+                    : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                }`}
+              >
+                <FaBookmark className={`h-4 w-4 ${showCuratedOnly ? "fill-current" : ""}`} />
+                <span>Show Curated Only</span>
+                {curatedPartners.size > 0 && (
+                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    showCuratedOnly ? "bg-white text-purple-600" : "bg-purple-600 text-white"
+                  }`}>
+                    {curatedPartners.size}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* Bookmark Category Filter - Only show when curated is active */}
+            {showCuratedOnly && bookmarkCategories.length > 0 && (
+              <div className="mt-4">
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Filter by Curate Category</h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedBookmarkCategory("all");
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      selectedBookmarkCategory === "all"
+                        ? "bg-purple-500 text-white shadow-md"
+                        : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    All Categories
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedBookmarkCategory("uncategorized");
+                      setPagination((p) => ({ ...p, page: 1 }));
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                      selectedBookmarkCategory === "uncategorized"
+                        ? "bg-slate-600 text-white shadow-md"
+                        : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    Uncategorized
+                  </button>
+                  {bookmarkCategories.map((cat: any) => (
+                    <button
+                      key={cat.name}
+                      onClick={() => {
+                        setSelectedBookmarkCategory(cat.name);
+                        setPagination((p) => ({ ...p, page: 1 }));
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+                        selectedBookmarkCategory === cat.name
+                          ? "bg-purple-500 text-white shadow-md"
+                          : "bg-slate-100 dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {cat.name} ({cat.count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Results Summary */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
+          <div>
+            <span className="font-medium text-slate-900 dark:text-white">
+              {partners.length} partner{partners.length === 1 ? "" : "s"}
+            </span>
           </div>
         </div>
 
@@ -537,7 +1142,7 @@ const AdminPartnersPage: React.FC = () => {
           <div className="flex justify-center items-center h-64">
             <FaSpinner className="animate-spin text-3xl text-emerald-500" />
           </div>
-        ) : sorted.length === 0 ? (
+        ) : partners.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-16 text-center">
             <FaUsers className="h-14 w-14 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
             <p className="text-base font-semibold text-slate-900 dark:text-white mb-1">No partners found</p>
@@ -550,7 +1155,7 @@ const AdminPartnersPage: React.FC = () => {
         ) : viewMode === "cards" ? (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {sorted.map((partner) => (
+              {paginatedPartners.map((partner) => (
                 <div key={partner.id}
                   className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5 hover:border-emerald-400 dark:hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all group">
                   {/* Avatar + name */}
@@ -588,7 +1193,12 @@ const AdminPartnersPage: React.FC = () => {
                   </div>
 
                   {/* Stats */}
-                  <div className="grid grid-cols-3 gap-2 mb-4">
+                  {(() => {
+                    const engagementRate = getOverallEngagementRate(partner);
+                    const hasEngagement = engagementRate !== null;
+                    
+                    return (
+                      <div className={`grid gap-2 mb-4 ${hasEngagement ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     <div className="rounded-xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 p-2 text-center">
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
                         {fmtFollowers(
@@ -601,13 +1211,17 @@ const AdminPartnersPage: React.FC = () => {
                       <p className="text-sm font-bold text-slate-900 dark:text-white">{partner.completedCampaigns || partner.totalCampaigns || partner.stats?.approvedApplications || 0}</p>
                       <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">Campaigns</p>
                     </div>
+                        {hasEngagement && (
                     <div className="rounded-xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 p-2 text-center">
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
-                        {partner.engagementRate ? `${partner.engagementRate.toFixed(1)}%` : "—"}
+                              {engagementRate.toFixed(1)}%
                       </p>
                       <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">Engagement</p>
                     </div>
+                        )}
                   </div>
+                    );
+                  })()}
 
                   {/* Niche tags */}
                   {((partner.niches && Array.isArray(partner.niches) && partner.niches.length > 0) || partner.niche) && (
@@ -671,6 +1285,25 @@ const AdminPartnersPage: React.FC = () => {
                       className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all">
                       <FaBullhorn className="h-3 w-3" /> Curate
                     </button>
+                    {curatedPartners.has(partner.id) ? (
+                      <button
+                        onClick={() => {
+                          setEditingCurate({ partnerId: partner.id, category: (partner as any).bookmarkCategory || null });
+                        }}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-purple-200 dark:border-purple-500/25 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-all"
+                        title="Manage curated"
+                      >
+                        <FaBookmark className="h-3 w-3 fill-current" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleCurate(partner.id)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
+                        title="Add to curated"
+                      >
+                        <FaBookmark className="h-3 w-3" />
+                      </button>
+                    )}
                     <Link href={`/admin/partners/${partner.id}`} className="flex-1">
                       <button className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all">
                         Profile <FaChevronRight className="h-2.5 w-2.5" />
@@ -726,7 +1359,7 @@ const AdminPartnersPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-white/10">
-                  {sorted.map((partner) => (
+                  {paginatedPartners.map((partner) => (
                     <tr key={partner.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
@@ -833,6 +1466,88 @@ const AdminPartnersPage: React.FC = () => {
           campaigns={campaigns}
           onClose={() => setCurateTarget(null)}
         />
+      )}
+
+      {/* Edit Curate Category Modal */}
+      {editingCurate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full shadow-xl border border-slate-200 dark:border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Manage Curated Partner
+              </h3>
+              <button
+                onClick={() => {
+                  setEditingCurate(null);
+                  setNewCategoryName("");
+                }}
+                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white"
+              >
+                <FaTimes className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Category
+                </label>
+                <select
+                  value={editingCurate.category || ""}
+                  onChange={(e) => setEditingCurate({ ...editingCurate, category: e.target.value || null })}
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white"
+                >
+                  <option value="">No Category (Uncategorized)</option>
+                  {bookmarkCategories.map((cat: any) => (
+                    <option key={cat.name} value={cat.name}>
+                      {cat.name} ({cat.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Or create new category
+                </label>
+                <input
+                  type="text"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="Category name"
+                  className="w-full px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <button
+                  onClick={() => {
+                    const categoryToUse = newCategoryName.trim() || editingCurate.category || undefined;
+                    handleUpdateCurateCategory(editingCurate.partnerId, categoryToUse || null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => handleUncurate(editingCurate.partnerId)}
+                  className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition-colors"
+                >
+                  Remove
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingCurate(null);
+                    setNewCategoryName("");
+                  }}
+                  className="px-4 py-2 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </AdminLayout>
   );
