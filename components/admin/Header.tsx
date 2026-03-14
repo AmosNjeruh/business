@@ -137,8 +137,8 @@ const Header: React.FC<HeaderProps> = ({
     : "BS";
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-20 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-white/8 flex items-center transition-colors duration-200">
-      <div className="flex items-center justify-between w-full px-4 sm:px-6">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 sm:h-20 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-white/8 flex items-center transition-colors duration-200">
+      <div className="flex items-center justify-between w-full px-3 sm:px-4 lg:px-6">
         {/* Left – logo + mobile menu toggle */}
         <div className="flex items-center gap-3">
           <button
@@ -148,13 +148,12 @@ const Header: React.FC<HeaderProps> = ({
             <FaBars className="h-4 w-4" />
           </button>
 
-          <Link href="/admin" className="flex items-center gap-2.5">
-           
+          <Link href="/admin" className="flex items-center gap-2">
             <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-sm font-bold text-slate-900 dark:text-white tracking-tight">
+              <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
                 Business Suite
               </span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+              <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                 Agency control room
               </span>
             </div>
@@ -162,19 +161,19 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Center – Brand switcher + quick search hint */}
-        <div className="hidden md:flex items-center gap-3 flex-1 max-w-2xl">
+        <div className="flex items-center gap-2 sm:gap-3 flex-1 max-w-2xl">
           {/* Brand Switcher */}
           {brands.length > 0 && (
             <div className="relative">
               <button
                 onClick={() => setShowBrandMenu(!showBrandMenu)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 hover:bg-slate-200 dark:hover:bg-white/8 transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 hover:bg-slate-200 dark:hover:bg-white/8 transition-colors"
               >
-                <FaBuilding className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-xs font-medium text-slate-900 dark:text-white max-w-[120px] truncate">
+                <FaBuilding className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500 flex-shrink-0" />
+                <span className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-white max-w-[80px] sm:max-w-[120px] truncate">
                   {selectedBrand?.name || "Select Brand"}
                 </span>
-                <FaChevronDown className="h-2.5 w-2.5 text-slate-400" />
+                <FaChevronDown className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-slate-400 flex-shrink-0" />
               </button>
               {showBrandMenu && (
                 <>
@@ -182,7 +181,7 @@ const Header: React.FC<HeaderProps> = ({
                     className="fixed inset-0 z-10"
                     onClick={() => setShowBrandMenu(false)}
                   />
-                  <div className="absolute left-0 top-full mt-1.5 z-20 w-64 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
+                  <div className="absolute left-0 top-full mt-1.5 z-20 w-[calc(100vw-2rem)] sm:w-64 md:w-72 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
                     <div className="px-3 py-2 border-b border-slate-200 dark:border-white/8">
                       <p className="text-xs font-semibold text-slate-900 dark:text-white">Switch Brand</p>
                     </div>
@@ -201,9 +200,9 @@ const Header: React.FC<HeaderProps> = ({
                               : ""
                           }`}
                         >
-                          <p className="font-medium text-slate-900 dark:text-white">{brand.name}</p>
+                          <p className="font-medium text-slate-900 dark:text-white truncate">{brand.name}</p>
                           <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            {brand.activeCampaigns || 0} active campaigns
+                            {brand.activeCampaigns || 0} active campaign{brand.activeCampaigns !== 1 ? 's' : ''}
                           </p>
                         </button>
                       ))}
@@ -222,7 +221,7 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           )}
           {/* Quick search hint */}
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 cursor-pointer hover:bg-slate-200 dark:hover:bg-white/8 transition-colors flex-1">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 cursor-pointer hover:bg-slate-200 dark:hover:bg-white/8 transition-colors flex-1">
             <svg
               className="h-3.5 w-3.5 text-slate-400"
               fill="none"
@@ -246,7 +245,7 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Right – theme toggle + notifications + user */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1 sm:gap-1.5">
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}

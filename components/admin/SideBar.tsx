@@ -107,7 +107,7 @@ const SideBar: React.FC<SideBarProps> = ({
           fixed left-0 top-0 z-40 h-full w-64
           bg-white dark:bg-slate-950
           border-r border-slate-200 dark:border-white/8
-          flex flex-col pt-20 pb-6 overflow-y-auto
+          flex flex-col pt-16 sm:pt-20 pb-6 overflow-y-auto
           transition-all duration-300
           sm:translate-x-0
           ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}
@@ -121,9 +121,9 @@ const SideBar: React.FC<SideBarProps> = ({
           <FaTimes className="h-4 w-4" />
         </button>
 
-        <nav className="flex-1 px-3 space-y-6">
-          {navGroups.map((group) => (
-            <div key={group.label}>
+        <nav className="flex-1 px-3 space-y-6 pt-4">
+          {navGroups.map((group, index) => (
+            <div key={group.label} className={index === 0 ? "mt-2" : ""}>
               <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500">
                 {group.label}
               </p>

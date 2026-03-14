@@ -51,9 +51,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
-      {/* Main content area – offset for fixed header (h-20) and fixed sidebar (w-64) */}
-      <div className="sm:ml-64 pt-20 min-h-screen">
-        <div className="p-4 lg:p-6">{children}</div>
+      {/* Main content area – offset for fixed header (h-16 sm:h-20) and fixed sidebar (w-64) */}
+      <div className="sm:ml-64 pt-16 sm:pt-20 min-h-screen">
+        <div className="p-3 sm:p-4 lg:p-6">{children}</div>
       </div>
     </div>
   );

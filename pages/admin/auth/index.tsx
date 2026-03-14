@@ -98,9 +98,9 @@ export default function AdminAuthPage() {
           <Image
             src="/logo.png"
             alt="Trend360"
-            width={40}
+            width={120}
             height={40}
-            className="h-10 w-10 object-contain"
+            className="h-10 sm:h-12 w-auto object-contain"
           />
         </Link>
 
@@ -149,9 +149,9 @@ export default function AdminAuthPage() {
             <Image
               src="/logo.png"
               alt="Trend360"
-              width={32}
+              width={100}
               height={32}
-              className="h-8 w-8 object-contain"
+              className="h-8 w-auto object-contain"
             />
             <span className="text-sm font-bold text-white">Trend360 Business Suite</span>
           </Link>
