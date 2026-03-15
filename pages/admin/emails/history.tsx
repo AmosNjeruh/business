@@ -355,10 +355,11 @@ const VendorEmailHistoryPage: React.FC = () => {
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                           <strong>Subject:</strong> {campaign.subject}
                         </p>
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                           <span className="flex items-center">
                             <FaCalendarAlt className="mr-1" size={12} />
-                            {formatDate(campaign.sentAt)}
+                            <span className="hidden sm:inline">{formatDate(campaign.sentAt)}</span>
+                            <span className="sm:hidden">{new Date(campaign.sentAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
                           </span>
                           <span className="flex items-center">
                             <FaUsers className="mr-1" size={12} />
@@ -380,27 +381,30 @@ const VendorEmailHistoryPage: React.FC = () => {
                       </div>
 
                       {/* Action buttons */}
-                      <div className="mt-4 md:mt-0 flex space-x-2">
+                      <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
                         <button
                           onClick={() => showContent(campaign)}
-                          className="flex items-center px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg transition-colors"
+                          className="flex items-center px-3 py-1.5 text-xs sm:text-sm bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-lg transition-colors"
                         >
                           <FaEye className="mr-1" size={12} />
-                          View Message
+                          <span className="hidden sm:inline">View Message</span>
+                          <span className="sm:hidden">View</span>
                         </button>
                         <button
                           onClick={() => toggleCampaignExpansion(campaign.id)}
-                          className="flex items-center px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
+                          className="flex items-center px-3 py-1.5 text-xs sm:text-sm bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg transition-colors"
                         >
                           {expandedCampaign === campaign.id ? (
                             <>
                               <FaEyeSlash className="mr-1" size={12} />
-                              Hide Details
+                              <span className="hidden sm:inline">Hide Details</span>
+                              <span className="sm:hidden">Hide</span>
                             </>
                           ) : (
                             <>
                               <FaExpand className="mr-1" size={12} />
-                              Show Details
+                              <span className="hidden sm:inline">Show Details</span>
+                              <span className="sm:hidden">Details</span>
                             </>
                           )}
                         </button>
@@ -484,7 +488,7 @@ const VendorEmailHistoryPage: React.FC = () => {
 
         {/* Content Modal */}
         {showContentModal && selectedCampaign && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col">
               {/* Header */}
               <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">

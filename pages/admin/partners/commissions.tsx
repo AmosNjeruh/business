@@ -89,7 +89,7 @@ const AdminCommissionsPage: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
           {[
             { label: "Total Tiers", val: tiers.length, color: "text-indigo-600 dark:text-indigo-400", icon: FaLayerGroup },
             { label: "Active Partners", val: partners.length, color: "text-emerald-600 dark:text-emerald-400", icon: FaUsers },

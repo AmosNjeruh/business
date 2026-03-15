@@ -166,9 +166,9 @@ function BulkInviteModal({
   const inputCls = "w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/15";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
           <FaTimes className="h-4 w-4" />
         </button>
@@ -329,9 +329,9 @@ function CurateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-2xl">
+      <div className="relative w-full max-w-sm rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-2xl">
         <button onClick={onClose} className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
           <FaTimes className="h-4 w-4" />
         </button>
@@ -791,44 +791,52 @@ const AdminPartnersPage: React.FC = () => {
               Discover {partners.length > 0 ? `${partners.length}+ ` : ""}creators and partners — browse, curate, and invite to Trend360
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-white/8 rounded-xl p-1">
               <button
                 onClick={() => setViewMode("table")}
-                className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 transition-colors ${
+                className={`px-2 sm:px-3 py-2 rounded-lg border text-xs sm:text-sm flex items-center gap-1 transition-colors ${
                   viewMode === "table"
                     ? "bg-emerald-500 text-white border-emerald-500"
                     : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
                 }`}
                 title="Table view"
               >
-                <FaList className="h-4 w-4" />
+                <FaList className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                <span className="hidden sm:inline">Table</span>
               </button>
               <button
                 onClick={() => setViewMode("cards")}
-                className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-1 transition-colors ${
+                className={`px-2 sm:px-3 py-2 rounded-lg border text-xs sm:text-sm flex items-center gap-1 transition-colors ${
                   viewMode === "cards"
                     ? "bg-emerald-500 text-white border-emerald-500"
                     : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-white/10"
                 }`}
                 title="Card view"
               >
-                <FaTh className="h-4 w-4" />
+                <FaTh className="h-3.5 sm:h-4 w-3.5 sm:w-4" />
+                <span className="hidden sm:inline">Cards</span>
               </button>
             </div>
             <button onClick={() => setShowBulkInviteModal(true)}
-              className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all whitespace-nowrap">
-              <FaUsers className="h-3.5 w-3.5" /> Bulk Invite
+              className="flex items-center gap-1.5 sm:gap-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all whitespace-nowrap">
+              <FaUsers className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">Bulk Invite</span>
+              <span className="sm:hidden">Bulk</span>
             </button>
             <button onClick={() => setShowInviteModal(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 text-slate-950 font-semibold text-sm px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/30 hover:opacity-90 transition-all whitespace-nowrap">
-              <FaUserPlus className="h-3.5 w-3.5" /> Invite Partner
+              className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 text-slate-950 font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl shadow-lg shadow-emerald-500/30 hover:opacity-90 transition-all whitespace-nowrap">
+              <FaUserPlus className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">Invite Partner</span>
+              <span className="sm:hidden">Invite</span>
             </button>
             <Link href="/admin/partners/curated"
-              className="flex items-center gap-2 bg-purple-100 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-300 font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-purple-200 dark:hover:bg-purple-500/20 transition-all whitespace-nowrap">
-              <FaBookmark className="h-3.5 w-3.5" /> Curated Partners
+              className="flex items-center gap-1.5 sm:gap-2 bg-purple-100 dark:bg-purple-500/10 border border-purple-200 dark:border-purple-500/20 text-purple-700 dark:text-purple-300 font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:bg-purple-200 dark:hover:bg-purple-500/20 transition-all whitespace-nowrap">
+              <FaBookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+              <span className="hidden sm:inline">Curated Partners</span>
+              <span className="sm:hidden">Curated</span>
               {curatedPartners.size > 0 && (
-                <span className="ml-1 px-2 py-0.5 bg-purple-600 text-white rounded-full text-xs font-bold">
+                <span className="ml-0.5 sm:ml-1 px-1.5 sm:px-2 py-0.5 bg-purple-600 text-white rounded-full text-[10px] sm:text-xs font-bold">
                   {curatedPartners.size}
                 </span>
               )}
@@ -837,10 +845,10 @@ const AdminPartnersPage: React.FC = () => {
         </div>
 
         {/* Filters and Search */}
-        <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-6 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4 sm:p-6 shadow-sm">
           {/* Search and Quick Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <div className="lg:col-span-2 relative">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+            <div className="sm:col-span-2 lg:col-span-2 relative">
               <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
               <input
                 value={search}
@@ -1005,8 +1013,8 @@ const AdminPartnersPage: React.FC = () => {
               </select>
 
                 {/* Min followers */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Min followers</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">Min followers</span>
                   <input
                     type="number"
                     value={minFollowersFilter}
@@ -1015,13 +1023,13 @@ const AdminPartnersPage: React.FC = () => {
                       setPagination((p) => ({ ...p, page: 1 }));
                     }}
                     placeholder="e.g. 10000"
-                    className="w-28 px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-xs"
+                    className="w-full sm:w-28 px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-xs"
                   />
             </div>
 
                 {/* Max followers */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">Max followers</span>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">Max followers</span>
                   <input
                     type="number"
                     value={maxFollowersFilter}
@@ -1030,7 +1038,7 @@ const AdminPartnersPage: React.FC = () => {
                       setPagination((p) => ({ ...p, page: 1 }));
                     }}
                     placeholder="e.g. 100000"
-                    className="w-28 px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-xs"
+                    className="w-full sm:w-28 px-3 py-2 border border-slate-200 dark:border-white/10 rounded-xl bg-slate-50 dark:bg-white/5 text-slate-900 dark:text-white text-xs"
                   />
                 </div>
 
@@ -1154,10 +1162,10 @@ const AdminPartnersPage: React.FC = () => {
           </div>
         ) : viewMode === "cards" ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
               {paginatedPartners.map((partner) => (
                 <div key={partner.id}
-                  className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5 hover:border-emerald-400 dark:hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all group">
+                  className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4 sm:p-5 hover:border-emerald-400 dark:hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all group">
                   {/* Avatar + name */}
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`h-12 w-12 rounded-full flex-shrink-0 overflow-hidden border-2 border-white dark:border-slate-800 shadow-md ${!partner.picture ? getAvatarColor(partner.name) : ""}`}>
@@ -1279,18 +1287,18 @@ const AdminPartnersPage: React.FC = () => {
                   )}
 
                   {/* Actions */}
-                  <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-white/8">
+                  <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-200 dark:border-white/8">
                     <button
                       onClick={() => setCurateTarget(partner)}
-                      className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all">
-                      <FaBullhorn className="h-3 w-3" /> Curate
+                      className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5 py-2 rounded-xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all">
+                      <FaBullhorn className="h-3 w-3" /> <span className="hidden sm:inline">Curate</span>
                     </button>
                     {curatedPartners.has(partner.id) ? (
                       <button
                         onClick={() => {
                           setEditingCurate({ partnerId: partner.id, category: (partner as any).bookmarkCategory || null });
                         }}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-purple-200 dark:border-purple-500/25 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-all"
+                        className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 rounded-xl border border-purple-200 dark:border-purple-500/25 bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:bg-purple-100 dark:hover:bg-purple-500/20 transition-all"
                         title="Manage curated"
                       >
                         <FaBookmark className="h-3 w-3 fill-current" />
@@ -1298,15 +1306,17 @@ const AdminPartnersPage: React.FC = () => {
                     ) : (
                       <button
                         onClick={() => handleCurate(partner.id)}
-                        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
+                        className="flex items-center justify-center gap-1.5 px-2 sm:px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all"
                         title="Add to curated"
                       >
                         <FaBookmark className="h-3 w-3" />
                       </button>
                     )}
-                    <Link href={`/admin/partners/${partner.id}`} className="flex-1">
+                    <Link href={`/admin/partners/${partner.id}`} className="flex-1 min-w-[100px]">
                       <button className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-white/10 transition-all">
-                        Profile <FaChevronRight className="h-2.5 w-2.5" />
+                        <span className="hidden sm:inline">Profile</span>
+                        <span className="sm:hidden">View</span>
+                        <FaChevronRight className="h-2.5 w-2.5" />
                       </button>
                     </Link>
                   </div>
@@ -1315,8 +1325,8 @@ const AdminPartnersPage: React.FC = () => {
             </div>
 
             {(pagination.totalPages || 0) > 1 && (
-              <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4">
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-3 sm:p-4">
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
                   Page <span className="font-semibold text-slate-900 dark:text-white">{pagination.page}</span> of{" "}
                   <span className="font-semibold text-slate-900 dark:text-white">{pagination.totalPages}</span>
                   {typeof pagination.total === "number" && (
@@ -1325,18 +1335,18 @@ const AdminPartnersPage: React.FC = () => {
                     </>
                   )}
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button
                     disabled={pagination.page <= 1}
                     onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 disabled:opacity-50"
+                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 disabled:opacity-50"
                   >
                     Previous
                   </button>
                   <button
                     disabled={!!pagination.totalPages && pagination.page >= (pagination.totalPages || 1)}
                     onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 disabled:opacity-50"
+                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-slate-700 dark:text-slate-300 disabled:opacity-50"
                   >
                     Next
                   </button>
@@ -1420,8 +1430,8 @@ const AdminPartnersPage: React.FC = () => {
               </table>
             </div>
             {(pagination.totalPages || 0) > 1 && (
-              <div className="bg-slate-50 dark:bg-white/5 px-4 py-3 flex items-center justify-between border-t border-slate-200 dark:border-white/10">
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="bg-slate-50 dark:bg-white/5 px-3 sm:px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200 dark:border-white/10">
+                <p className="text-xs text-slate-500 dark:text-slate-400 text-center sm:text-left">
                   Page <span className="font-semibold text-slate-900 dark:text-white">{pagination.page}</span> of{" "}
                   <span className="font-semibold text-slate-900 dark:text-white">{pagination.totalPages}</span>
                   {typeof pagination.total === "number" && (
@@ -1430,18 +1440,18 @@ const AdminPartnersPage: React.FC = () => {
                     </>
                   )}
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
                   <button
                     disabled={pagination.page <= 1}
                     onClick={() => setPagination((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 disabled:opacity-50"
+                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 disabled:opacity-50"
                   >
                     Previous
                   </button>
                   <button
                     disabled={!!pagination.totalPages && pagination.page >= (pagination.totalPages || 1)}
                     onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
-                    className="px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 disabled:opacity-50"
+                    className="flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 disabled:opacity-50"
                   >
                     Next
                   </button>
@@ -1470,8 +1480,8 @@ const AdminPartnersPage: React.FC = () => {
 
       {/* Edit Curate Category Modal */}
       {editingCurate && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 max-w-md w-full shadow-xl border border-slate-200 dark:border-white/10">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 max-w-md w-full shadow-xl border border-slate-200 dark:border-white/10">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 Manage Curated Partner

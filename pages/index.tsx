@@ -42,7 +42,7 @@ export default function Home() {
         <div className="relative mx-auto max-w-4xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-1.5 text-sm font-medium text-emerald-300 backdrop-blur transition-all hover:scale-105 hover:border-emerald-400/40">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-            Built on Trend360 · Trusted by agencies worldwide
+            Trusted by Hundreds worldwide
           </div>
           <h1 className="mb-6 animate-fade-in-up text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Your command center for

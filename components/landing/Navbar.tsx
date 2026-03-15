@@ -22,7 +22,7 @@ export default function Navbar() {
           : "border-b border-white/5 bg-slate-950/80 backdrop-blur-xl"
       }`}
     >
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-12">
+      <nav className="mx-auto flex  items-center justify-between px-2 md:px-6 py-4 lg:px-12">
         <Link href="/" className="group flex items-center transition-transform hover:scale-105">
           <div className="relative h-12 w-auto transition-all group-hover:scale-110">
             <Image

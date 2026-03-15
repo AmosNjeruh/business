@@ -12,8 +12,12 @@ import {
   FaLock,
   FaUser,
   FaCheckCircle,
+  FaPhone,
 } from "react-icons/fa";
 import { login, register, setToken, setUser, getCurrentUser, RegisterData } from "@/services/auth";
+import { updateVendorProfile } from "@/services/vendor";
+import Navbar from "@/components/landing/Navbar";
+import GoogleSignIn from "@/components/auth/GoogleSignIn";
 
 type Tab = "login" | "register";
 
@@ -26,10 +30,14 @@ export default function AdminAuthPage() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
-  // Register state
+  // Register state - Account Information
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  
+  // Register state - Business Information
+  const [contactPhone, setContactPhone] = useState("");
 
   // Redirect if already logged in
   useEffect(() => {
@@ -37,6 +45,7 @@ export default function AdminAuthPage() {
       router.replace("/admin");
     }
   }, [router]);
+
 
   // ── Login ──────────────────────────────────────────────────────────────────
   const handleLogin = async (e: FormEvent) => {
@@ -63,8 +72,32 @@ export default function AdminAuthPage() {
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    
+    // Validation
+    const errors: string[] = [];
+    if (!regName || !regName.trim()) {
+      errors.push('Company/Business name is required');
+    }
+    if (!regEmail || !regEmail.trim()) {
+      errors.push('Email is required');
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(regEmail)) {
+      errors.push('Please enter a valid email address');
+    }
+    if (!regPassword || regPassword.length < 6) {
+      errors.push('Password must be at least 6 characters');
+    }
+    if (!contactPhone || !contactPhone.trim()) {
+      errors.push('Phone number is required');
+    }
+    
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      setIsLoading(false);
+      return;
+    }
+    
     try {
-      // Business Suite is only for vendors
+      // Step 1: Register the user
       const auth = await register({
         email: regEmail,
         password: regPassword,
@@ -73,8 +106,21 @@ export default function AdminAuthPage() {
       });
       setToken(auth.token);
       setUser(auth.user);
-      toast.success("Account created! Welcome to the Business Suite.");
-      router.push("/admin");
+      
+      // Step 2: Update vendor settings with business information
+      try {
+        await updateVendorProfile({
+          contactPhone: contactPhone.trim(),
+        });
+        
+        toast.success("Account created! Welcome to the Business Suite.");
+        router.push("/admin");
+      } catch (settingsError: any) {
+        console.error('Error saving business information:', settingsError);
+        // Account was created but profile save failed
+        toast.error('Account created, but failed to save business information. You can complete it later.');
+        router.push("/admin");
+      }
     } catch (err: any) {
       const msg =
         err?.response?.data?.error ||
@@ -88,23 +134,15 @@ export default function AdminAuthPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 flex">
+      <Navbar />
       {/* ── Left panel – branding ── */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
+      <div className="hidden pt-24 lg:flex lg:w-1/2 flex-col justify-between p-12 relative overflow-hidden">
         {/* Background glow */}
         <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
 
-        <Link href="/" className="flex items-center gap-3 relative z-10">
-          <Image
-            src="/logo.png"
-            alt="Trend360"
-            width={120}
-            height={40}
-            className="h-10 sm:h-12 w-auto object-contain"
-          />
-        </Link>
-
-        <div className="relative z-10 space-y-8">
+        
+        <div className="relative z-10 space-y-8 ">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400 mb-4">
               For agencies &amp; serious vendors
@@ -142,19 +180,9 @@ export default function AdminAuthPage() {
       </div>
 
       {/* ── Right panel – form ── */}
-      <div className="flex-1 flex flex-col justify-center px-6 py-12 lg:px-12">
+      <div className="flex-1 pt-24 flex flex-col justify-center px-6 py-12 lg:px-12">
         <div className="w-full max-w-md mx-auto">
-          {/* Mobile logo */}
-          <Link href="/" className="flex items-center gap-2 mb-8 lg:hidden">
-            <Image
-              src="/logo.png"
-              alt="Trend360"
-              width={100}
-              height={32}
-              className="h-8 w-auto object-contain"
-            />
-            <span className="text-sm font-bold text-white">Trend360 Business Suite</span>
-          </Link>
+          
 
           {/* Tab toggle */}
           <div className="flex gap-1 bg-slate-900 rounded-xl p-1 mb-8 border border-white/8">
@@ -221,6 +249,17 @@ export default function AdminAuthPage() {
 
               <SubmitButton loading={isLoading} label="Log in to Business Suite" />
 
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-slate-950 text-slate-400">Or continue with</span>
+                </div>
+              </div>
+
+              <GoogleSignIn mode="login" />
+
               <p className="text-xs text-slate-400 text-center">
                 No account?{" "}
                 <button
@@ -244,35 +283,83 @@ export default function AdminAuthPage() {
                 </p>
               </div>
 
-              <Field
-                id="reg-name"
-                label="Your name"
-                type="text"
-                value={regName}
-                onChange={setRegName}
-                placeholder="Ada at Northbridge Studio"
-                icon={FaUser}
-              />
-              <Field
-                id="reg-email"
-                label="Work email"
-                type="email"
-                value={regEmail}
-                onChange={setRegEmail}
-                placeholder="you@agency.co"
-                icon={FaEnvelope}
-              />
-              <Field
-                id="reg-password"
-                label="Password"
-                type="password"
-                value={regPassword}
-                onChange={setRegPassword}
-                placeholder="Min 6 characters"
-                icon={FaLock}
-              />
+              {/* Account Information */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-slate-300 mt-4 mb-2">Account Information</h3>
+                
+                <Field
+                  id="reg-name"
+                  label="Company/Business Name"
+                  type="text"
+                  value={regName}
+                  onChange={setRegName}
+                  placeholder="Enter your business name"
+                  icon={FaUser}
+                />
+                <Field
+                  id="reg-email"
+                  label="Email"
+                  type="email"
+                  value={regEmail}
+                  onChange={setRegEmail}
+                  placeholder="you@agency.co"
+                  icon={FaEnvelope}
+                />
+                <div>
+                  <label htmlFor="reg-password" className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                    <input
+                      id="reg-password"
+                      type={showPassword ? "text" : "password"}
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      placeholder="Min 6 characters"
+                      className="w-full pl-9 pr-10 py-2.5 rounded-xl border border-white/10 bg-white/5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/20 transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    >
+                      {showPassword ? "Hide" : "Show"}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">Password must be at least 6 characters</p>
+                </div>
+              </div>
+
+              {/* Business Information */}
+              <div className="space-y-4 border-t border-white/10 pt-4 mt-4">
+                <h3 className="text-sm font-semibold text-slate-300 mb-2">Business Information</h3>
+                
+                <Field
+                  id="reg-phone"
+                  label="Phone Number"
+                  type="tel"
+                  value={contactPhone}
+                  onChange={setContactPhone}
+                  placeholder="Enter phone number"
+                  icon={FaPhone}
+                />
+              </div>
 
               <SubmitButton loading={isLoading} label="Create Business Suite account" />
+
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="px-2 bg-slate-950 text-slate-400">Or continue with</span>
+                </div>
+              </div>
+
+              <GoogleSignIn mode="signup" />
 
               <p className="text-xs text-slate-400 text-center">
                 Already have an account?{" "}

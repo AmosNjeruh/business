@@ -2,6 +2,7 @@
 // Mirrors frontend/components/vendor/Header pattern with full light/dark support
 
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import {
@@ -16,6 +17,14 @@ import {
   FaCode,
   FaBuilding,
   FaTimes,
+  FaSearch,
+  FaArrowRight,
+  FaBullhorn,
+  FaFileAlt,
+  FaChartBar,
+  FaWallet,
+  FaUsers,
+  FaEnvelope,
 } from "react-icons/fa";
 import { getCurrentUser, logout } from "@/services/auth";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -42,6 +51,14 @@ const Header: React.FC<HeaderProps> = ({
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   useEffect(() => {
     setUser(getCurrentUser());
@@ -52,14 +69,48 @@ const Header: React.FC<HeaderProps> = ({
       fetchUnreadCount();
     }, 30000);
     
-    return () => clearInterval(interval);
-  }, []);
+    // Keyboard shortcut for search (Cmd+K or Ctrl+K)
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent if user is typing in an input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+      
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+      if (e.key === 'Escape' && showSearch) {
+        setShowSearch(false);
+        setSearchQuery("");
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showSearch]);
 
   useEffect(() => {
     if (showNotifications) {
       fetchNotifications();
     }
   }, [showNotifications]);
+
+  // Prevent body scroll when search modal is open
+  useEffect(() => {
+    if (showSearch) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showSearch]);
 
   const fetchUnreadCount = async () => {
     try {
@@ -126,6 +177,27 @@ const Header: React.FC<HeaderProps> = ({
     logout();
     router.push("/admin/auth");
   };
+
+  const handleSearch = (query: string) => {
+    if (!query.trim()) return;
+    
+    // Navigate to partners page with search query
+    router.push({
+      pathname: '/admin/partners',
+      query: { search: query.trim() }
+    });
+    setShowSearch(false);
+    setSearchQuery("");
+  };
+
+  const searchQuickLinks = [
+    { label: "Campaigns", href: "/admin/campaigns", icon: FaBullhorn },
+    { label: "Partners", href: "/admin/partners", icon: FaUsers },
+    { label: "Applications", href: "/admin/applications", icon: FaFileAlt },
+    { label: "Analytics", href: "/admin/analytics", icon: FaChartBar },
+    { label: "Finance", href: "/admin/finance", icon: FaWallet },
+    { label: "Messages", href: "/admin/messages", icon: FaEnvelope },
+  ];
 
   const initials = user?.name
     ? user.name
@@ -221,27 +293,18 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           )}
           {/* Quick search hint */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 cursor-pointer hover:bg-slate-200 dark:hover:bg-white/8 transition-colors flex-1">
-            <svg
-              className="h-3.5 w-3.5 text-slate-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-            <span className="text-xs text-slate-400 dark:text-slate-500">
+          <button
+            onClick={() => setShowSearch(true)}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 cursor-pointer hover:bg-slate-200 dark:hover:bg-white/8 transition-colors flex-1 text-left"
+          >
+            <FaSearch className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
+            <span className="text-xs text-slate-400 dark:text-slate-500 flex-1">
               Search anything…
             </span>
             <kbd className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10">
               ⌘K
             </kbd>
-          </div>
+          </button>
         </div>
 
         {/* Right – theme toggle + notifications + user */}
@@ -439,6 +502,105 @@ const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Search Modal - Rendered via Portal */}
+      {showSearch && mounted && typeof window !== 'undefined' && createPortal(
+        <>
+          <div
+            className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm"
+            style={{ zIndex: 9999 }}
+            onClick={() => {
+              setShowSearch(false);
+              setSearchQuery("");
+            }}
+          />
+          <div 
+            className="fixed inset-0 flex items-start justify-center pt-[10vh] px-3 sm:px-4 overflow-y-auto pointer-events-none"
+            style={{ zIndex: 10000 }}
+          >
+            <div className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden my-4 pointer-events-auto">
+              {/* Search Input */}
+              <div className="flex items-center gap-3 px-3 sm:px-4 py-3 sm:py-4 border-b border-slate-200 dark:border-white/8">
+                <FaSearch className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      e.preventDefault();
+                      handleSearch(searchQuery);
+                    }
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setShowSearch(false);
+                      setSearchQuery("");
+                    }
+                  }}
+                  placeholder="Search campaigns, partners, applications..."
+                  className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                  >
+                    <FaTimes className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Quick Links */}
+              <div className="px-3 sm:px-4 py-3 border-b border-slate-200 dark:border-white/8">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Quick Navigation</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {searchQuickLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => {
+                          setShowSearch(false);
+                          setSearchQuery("");
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white transition-colors"
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        {link.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Search Results / Actions */}
+              {searchQuery.trim() && (
+                <div className="px-3 sm:px-4 py-3">
+                  <button
+                    onClick={() => handleSearch(searchQuery)}
+                    className="w-full flex items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+                  >
+                    <span className="text-xs sm:text-sm font-medium truncate">
+                      Search "{searchQuery}" in Partners
+                    </span>
+                    <FaArrowRight className="h-3.5 sm:h-4 w-3.5 sm:w-4 flex-shrink-0 ml-2" />
+                  </button>
+                </div>
+              )}
+
+              {/* Footer hint */}
+              <div className="px-3 sm:px-4 py-2 bg-slate-50 dark:bg-white/3 border-t border-slate-200 dark:border-white/8">
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
+                  Press <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10">Esc</kbd> to close
+                </p>
+              </div>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </header>
   );
 };

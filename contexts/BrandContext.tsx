@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { getBrands, BrandData } from "@/services/vendor";
+import { getToken } from "@/services/auth";
 
 interface Brand {
   id: string;
@@ -38,6 +39,21 @@ export const BrandProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshBrands = useCallback(async () => {
+    // Check if user is authenticated before making API call
+    if (typeof window === "undefined") {
+      setIsLoading(false);
+      return;
+    }
+
+    const token = getToken();
+    if (!token) {
+      // No token - user is not authenticated, skip fetching brands
+      setIsLoading(false);
+      setBrands([]);
+      setSelectedBrandState(null);
+      return;
+    }
+
     try {
       setIsLoading(true);
       const data = await getBrands();

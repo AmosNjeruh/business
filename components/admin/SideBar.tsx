@@ -18,6 +18,7 @@ import {
   FaCode,
   FaUserShield,
   FaWallet,
+  FaPaperPlane,
 } from "react-icons/fa";
 
 interface SideBarProps {
@@ -50,6 +51,7 @@ const navGroups = [
     items: [
       { href: "/admin/partners", label: "Partners", icon: FaUsers },
       { href: "/admin/messages", label: "Messages", icon: FaEnvelope },
+      { href: "/admin/emails", label: "Emails", icon: FaPaperPlane },
     ],
   },
   {

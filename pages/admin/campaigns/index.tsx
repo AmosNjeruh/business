@@ -168,7 +168,7 @@ const AdminCampaignsPage: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
             { label: "Total Campaigns", val: stats.total, sub: `${stats.active} active`, light: "border-blue-200 bg-blue-50 text-blue-600", dark: "dark:border-blue-500/20 dark:bg-blue-500/5 dark:text-blue-400" },
             { label: "Total Budget", val: formatFromUSD(stats.totalBudgetUSD), sub: "Allocated", light: "border-green-200 bg-green-50 text-green-600", dark: "dark:border-green-500/20 dark:bg-green-500/5 dark:text-green-400" },

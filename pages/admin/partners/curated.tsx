@@ -319,7 +319,7 @@ const CuratedPartnersPage: React.FC = () => {
           ) : (
             <>
               {viewMode === 'grid' ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
                   {partners.map((partner) => {
                     const topPlatform = partner.socialMediaAccounts?.length > 0 
                       ? partner.socialMediaAccounts.reduce((max: any, acc: any) => (acc.followers || 0) > (max.followers || 0) ? acc : max, partner.socialMediaAccounts[0])

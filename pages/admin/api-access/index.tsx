@@ -529,10 +529,12 @@ export default function ApiAccessPage() {
                 {isOpen && (
                   <div className="border-t border-slate-200 dark:border-white/8 divide-y divide-slate-100 dark:divide-white/5 bg-white dark:bg-slate-900/60">
                     {group.endpoints.map((ep) => (
-                      <div key={ep.path} className="flex items-center gap-3 px-5 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-bold font-mono flex-shrink-0 min-w-[46px] justify-center ${METHOD_COLORS[ep.method] || METHOD_COLORS.GET}`}>{ep.method}</span>
-                        <code className="text-xs font-mono text-slate-700 dark:text-slate-300 flex-shrink-0">{ep.path}</code>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 flex-1 hidden sm:block">{ep.desc}</span>
+                      <div key={ep.path} className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 px-4 sm:px-5 py-3">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-lg border text-[10px] font-bold font-mono flex-shrink-0 min-w-[46px] justify-center ${METHOD_COLORS[ep.method] || METHOD_COLORS.GET}`}>{ep.method}</span>
+                          <code className="text-xs font-mono text-slate-700 dark:text-slate-300 break-all sm:break-normal">{ep.path}</code>
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400 sm:flex-1">{ep.desc}</span>
                       </div>
                     ))}
                   </div>

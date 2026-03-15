@@ -12,6 +12,11 @@ export interface LoginData {
   password: string;
 }
 
+export interface GoogleAuthData {
+  credential: string;
+  role?: 'ADMIN' | 'VENDOR' | 'PARTNER';
+}
+
 export interface AuthResponse {
   user: {
     id: string;
@@ -21,8 +26,10 @@ export interface AuthResponse {
     vendorSlug?: string | null;
     partnerSlug?: string | null;
     verified: boolean;
+    vendorSettings?: any;
   };
   token: string;
+  isNewUser?: boolean;
 }
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
@@ -32,6 +39,11 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
 
 export const login = async (data: LoginData): Promise<AuthResponse> => {
   const response = await Api.post<{ data: AuthResponse }>('/auth/login', data);
+  return response.data.data;
+};
+
+export const googleAuth = async (data: GoogleAuthData): Promise<AuthResponse> => {
+  const response = await Api.post<{ data: AuthResponse }>('/auth/google', data);
   return response.data.data;
 };
 
@@ -94,6 +106,7 @@ export const logout = (): void => {
 export default {
   register,
   login,
+  googleAuth,
   setToken,
   setUser,
   getToken,
