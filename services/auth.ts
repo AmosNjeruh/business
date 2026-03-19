@@ -47,6 +47,30 @@ export const googleAuth = async (data: GoogleAuthData): Promise<AuthResponse> =>
   return response.data.data;
 };
 
+/**
+ * Send a 6-digit OTP to the user's email as the 2FA step during login.
+ * Call this after the user submits valid credentials.
+ */
+export const sendLoginOtp = async (email: string): Promise<void> => {
+  await Api.post('/auth/send-otp', { email });
+};
+
+/**
+ * Verify the 6-digit OTP + re-supply the password, then receive a full auth token.
+ */
+export const verifyLoginOtp = async (
+  email: string,
+  otp: string,
+  password: string
+): Promise<AuthResponse> => {
+  const response = await Api.post<{ data: AuthResponse }>('/auth/verify-otp', {
+    email,
+    otp,
+    password,
+  });
+  return response.data.data;
+};
+
 // Browser window helper
 interface BrowserWindow {
   localStorage?: {
@@ -67,6 +91,10 @@ const getBrowserWindow = (): BrowserWindow | null => {
 export const setToken = (token: string): void => {
   const win = getBrowserWindow();
   if (win?.localStorage) {
+    // Clear any stale vendor-context keys from a previous session so the new
+    // user's requests don't inherit the wrong x-selected-vendor header.
+    win.localStorage.removeItem('selectedVendorId');
+    win.localStorage.removeItem('t360:business:selectedBrandId');
     win.localStorage.setItem('token', token);
   }
 };
@@ -100,6 +128,8 @@ export const logout = (): void => {
   if (win?.localStorage) {
     win.localStorage.removeItem('token');
     win.localStorage.removeItem('user');
+    win.localStorage.removeItem('selectedVendorId');
+    win.localStorage.removeItem('t360:business:selectedBrandId');
   }
 };
 
@@ -107,6 +137,8 @@ export default {
   register,
   login,
   googleAuth,
+  sendLoginOtp,
+  verifyLoginOtp,
   setToken,
   setUser,
   getToken,

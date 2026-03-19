@@ -290,14 +290,14 @@ const AdminApplicationsPage: React.FC = () => {
                 <button
                   onClick={() => setShowBulkApproveConfirm(true)}
                   disabled={selectedApplications.size === 0 || isBulkApproving}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white transition-all"
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all"
                 >
                   {isBulkApproving ? "Approving…" : `Approve Selected (${selectedApplications.size})`}
                 </button>
                 <button
                   onClick={() => setShowBulkRejectConfirm(true)}
                   disabled={selectedApplications.size === 0 || isBulkRejecting}
-                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white transition-all"
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all"
                 >
                   {isBulkRejecting ? "Rejecting…" : `Reject Selected (${selectedApplications.size})`}
                 </button>

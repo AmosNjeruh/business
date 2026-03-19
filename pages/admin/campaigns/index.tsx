@@ -12,7 +12,7 @@ import { useBrand } from "@/contexts/BrandContext";
 import {
   FaPlus, FaSearch, FaSpinner, FaBriefcase, FaMoneyBillWave,
   FaCalendarAlt, FaChevronRight, FaExclamationTriangle, FaClock,
-  FaCheckCircle,
+  FaCheckCircle, FaChartLine,
 } from "react-icons/fa";
 import { FaList, FaTh } from "react-icons/fa";
 function fmtDate(d: string | Date) {
@@ -170,18 +170,48 @@ const AdminCampaignsPage: React.FC = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[
-            { label: "Total Campaigns", val: stats.total, sub: `${stats.active} active`, light: "border-blue-200 bg-blue-50 text-blue-600", dark: "dark:border-blue-500/20 dark:bg-blue-500/5 dark:text-blue-400" },
-            { label: "Total Budget", val: formatFromUSD(stats.totalBudgetUSD), sub: "Allocated", light: "border-green-200 bg-green-50 text-green-600", dark: "dark:border-green-500/20 dark:bg-green-500/5 dark:text-green-400" },
-            { label: "Expiring Soon", val: stats.expiringSoon, sub: "Within 7 days", light: "border-yellow-200 bg-yellow-50 text-yellow-600", dark: "dark:border-yellow-500/20 dark:bg-yellow-500/5 dark:text-yellow-400" },
-            { label: "Ended", val: stats.ended, sub: "Past end date", light: "border-red-200 bg-red-50 text-red-600", dark: "dark:border-red-500/20 dark:bg-red-500/5 dark:text-red-400" },
-          ].map(({ label, val, sub, light, dark }) => (
+            { label: "Total Campaigns", val: stats.total,                        sub: `${stats.active} active`,  icon: FaBriefcase,         light: "border-blue-200   bg-blue-50   text-blue-600",   dark: "dark:border-blue-500/20   dark:bg-blue-500/5   dark:text-blue-400"   },
+            { label: "Total Budget",    val: formatFromUSD(stats.totalBudgetUSD), sub: "Allocated",               icon: FaMoneyBillWave,     light: "border-green-200  bg-green-50  text-green-600",  dark: "dark:border-green-500/20  dark:bg-green-500/5  dark:text-green-400"  },
+            { label: "Expiring Soon",   val: stats.expiringSoon,                  sub: "Within 7 days",           icon: FaClock,             light: "border-yellow-200 bg-yellow-50 text-yellow-600", dark: "dark:border-yellow-500/20 dark:bg-yellow-500/5 dark:text-yellow-400" },
+            { label: "Ended",           val: stats.ended,                         sub: "Past end date",           icon: FaExclamationTriangle, light: "border-red-200  bg-red-50    text-red-600",    dark: "dark:border-red-500/20    dark:bg-red-500/5    dark:text-red-400"    },
+          ].map(({ label, val, sub, icon: Icon, light, dark }) => (
             <div key={label} className={`rounded-2xl border p-4 ${light} ${dark}`}>
-              <p className="text-xs font-medium mb-1">{label}</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{val}</p>
-              <p className="text-xs mt-0.5 opacity-70">{sub}</p>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium mb-1">{label}</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white">{val}</p>
+                  <p className="text-xs mt-0.5 opacity-70">{sub}</p>
+                </div>
+                <Icon className="h-5 w-5 opacity-30 mt-0.5" />
+              </div>
             </div>
           ))}
         </div>
+
+        {/* Expiry alert banner */}
+        {(stats.ended > 0 || stats.expiringSoon > 0) && (
+          <div className={`rounded-2xl border-2 p-4 sm:p-5 shadow-sm ${
+            stats.ended > 0
+              ? "bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 border-red-300 dark:border-red-700/50"
+              : "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-yellow-300 dark:border-yellow-700/50"
+          }`}>
+            <div className="flex items-start gap-3">
+              <FaExclamationTriangle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${stats.ended > 0 ? "text-red-500" : "text-yellow-500"}`} />
+              <div className="flex-1 min-w-0">
+                <p className={`font-semibold text-sm ${stats.ended > 0 ? "text-red-800 dark:text-red-200" : "text-yellow-800 dark:text-yellow-200"}`}>
+                  {stats.ended > 0 && stats.expiringSoon > 0
+                    ? `${stats.ended} campaign${stats.ended > 1 ? "s have" : " has"} ended · ${stats.expiringSoon} expiring within 7 days`
+                    : stats.ended > 0
+                    ? `${stats.ended} campaign${stats.ended > 1 ? "s have" : " has"} passed their end date`
+                    : `${stats.expiringSoon} campaign${stats.expiringSoon > 1 ? "s are" : " is"} expiring within the next 7 days`}
+                </p>
+                <p className={`text-xs mt-0.5 ${stats.ended > 0 ? "text-red-600 dark:text-red-300" : "text-yellow-600 dark:text-yellow-300"}`}>
+                  Review the campaigns below and update their status or end dates as needed.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Search + Filter */}
         <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4">
