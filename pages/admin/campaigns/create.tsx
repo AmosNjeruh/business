@@ -8,6 +8,8 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import AdminLayout from '@/components/admin/Layout'
 import { createCampaign, uploadCampaignImage, uploadAdditionalImages, addProductsToCampaign, getVendorBalance, createStripeCheckoutSession, createPaystackSession } from '@/services/vendor'
+import { getVendorProfile } from '@/services/vendor'
+import { getCurrentUser } from '@/services/auth'
 import { useBrand } from '@/contexts/BrandContext'
 import { FaSpinner, FaEye, FaArrowLeft } from 'react-icons/fa'
 import GoalSelectionStep from '@/components/admin/campaigns/GoalSelectionStep'
@@ -188,6 +190,27 @@ const CreateCampaignPage: React.FC = () => {
     }
     fetchBalance()
   }, [])
+
+  // Default audience location to vendor country (if no draft locations already set)
+  useEffect(() => {
+    if (!draftLoaded) return
+    if (audienceTargeting?.locations && audienceTargeting.locations.length > 0) return
+
+    const localCountry = (getCurrentUser() as any)?.vendorSettings?.country as string | undefined
+    if (localCountry) {
+      setAudienceTargeting({ locations: [{ address: localCountry, type: 'text' }] })
+      return
+    }
+
+    getVendorProfile()
+      .then((settings: any) => {
+        const country = (settings?.country as string | undefined) || (settings?.vendorSettings?.country as string | undefined)
+        if (country) {
+          setAudienceTargeting({ locations: [{ address: country, type: 'text' }] })
+        }
+      })
+      .catch(() => {})
+  }, [draftLoaded, audienceTargeting?.locations?.length])
 
   // Auto-save draft
   useEffect(() => {

@@ -7,6 +7,7 @@ import { useRouter } from "next/router";
 import {
   FaTachometerAlt,
   FaBullhorn,
+  FaTrophy,
   FaUsers,
   FaFileAlt,
   FaCheckSquare,
@@ -38,6 +39,7 @@ const navGroups = [
     label: "Campaigns",
     items: [
       { href: "/admin/campaigns", label: "Campaigns", icon: FaBullhorn },
+      { href: "/admin/challenges", label: "Challenges", icon: FaTrophy },
       { href: "/admin/applications", label: "Applications", icon: FaFileAlt },
       {
         href: "/admin/work-validation",

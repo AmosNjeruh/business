@@ -1,6 +1,6 @@
 // Audience Targeting Form Component (Simplified - text-based locations)
 
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { FaMapMarkerAlt, FaChevronDown, FaChevronUp, FaTimes } from 'react-icons/fa'
 
 interface LocationTarget {
@@ -24,8 +24,16 @@ const AudienceTargetingForm: React.FC<AudienceTargetingFormProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [locationInput, setLocationInput] = useState('')
+  const hasAutoExpandedRef = useRef(false)
 
   const locations = audienceTargeting?.locations || []
+
+  useEffect(() => {
+    if (hasAutoExpandedRef.current) return
+    if (locations.length === 0) return
+    setIsExpanded(true)
+    hasAutoExpandedRef.current = true
+  }, [locations.length])
 
   const handleAddLocation = () => {
     if (!locationInput.trim()) return
