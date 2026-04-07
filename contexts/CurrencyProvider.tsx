@@ -21,6 +21,8 @@ export interface BusinessCurrencyContextType {
   convertFromUSD: (amountInUSD: number) => number;
   /** Change the active currency (also persisted to localStorage) */
   setSelectedCurrency: (currency: SupportedCurrency) => void;
+  /** Best-effort detected user country (for location defaults) */
+  userCountry: string | null;
 }
 
 interface BusinessCurrencyProviderProps {
@@ -53,6 +55,7 @@ export const BusinessCurrencyProvider: React.FC<BusinessCurrencyProviderProps> =
   children,
 }) => {
   const [selectedCurrency, setSelectedCurrencyState] = useState<SupportedCurrency>("NGN");
+  const [userCountry, setUserCountry] = useState<string | null>(null);
 
   // Load initial preference from localStorage (client only)
   useEffect(() => {
@@ -68,6 +71,40 @@ export const BusinessCurrencyProvider: React.FC<BusinessCurrencyProviderProps> =
     if (typeof window !== "undefined") {
       window.localStorage.setItem(STORAGE_KEY, currency);
     }
+  }, []);
+
+  // Best-effort country detection (mirrors vendor-side behavior)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const detectCountry = async () => {
+      try {
+        const response = await fetch("https://ipapi.co/json/");
+        if (response.ok) {
+          const data = (await response.json()) as { country?: string };
+          if (data?.country) {
+            setUserCountry(data.country);
+            return;
+          }
+        }
+      } catch {
+        // no-op fallback below
+      }
+
+      try {
+        const altResponse = await fetch("https://ip-api.com/json/?fields=country");
+        if (altResponse.ok) {
+          const data = (await altResponse.json()) as { country?: string };
+          if (data?.country) {
+            setUserCountry(data.country);
+          }
+        }
+      } catch {
+        // keep null if both providers fail
+      }
+    };
+
+    void detectCountry();
   }, []);
 
   const currencySymbol = useMemo(
@@ -102,6 +139,7 @@ export const BusinessCurrencyProvider: React.FC<BusinessCurrencyProviderProps> =
     formatFromUSD,
     convertFromUSD,
     setSelectedCurrency,
+    userCountry,
   };
 
   return (

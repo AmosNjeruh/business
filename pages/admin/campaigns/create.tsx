@@ -24,6 +24,7 @@ import AudienceTargetingForm from '@/components/admin/campaigns/AudienceTargetin
 import ProductSelector from '@/components/admin/campaigns/ProductSelector'
 import CampaignSummaryPage from '@/components/admin/campaigns/CampaignSummaryPage'
 import CampaignPreviewModal from '@/components/admin/campaigns/CampaignPreviewModal'
+import useCurrency from '@/hooks/useCurrency'
 
 interface FollowerTier {
   minFollowers: number
@@ -34,6 +35,7 @@ interface FollowerTier {
 const CreateCampaignPage: React.FC = () => {
   const router = useRouter()
   const { selectedBrand } = useBrand()
+  const { userCountry } = useCurrency()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [thumbnailImage, setThumbnailImage] = useState<string | null>(null)
@@ -191,25 +193,40 @@ const CreateCampaignPage: React.FC = () => {
     fetchBalance()
   }, [])
 
+  const resolveVendorCountry = async (): Promise<string | undefined> => {
+    const currentUser = getCurrentUser() as any
+    const localCountry =
+      (currentUser?.vendorSettings?.country as string | undefined) ||
+      (currentUser?.country as string | undefined)
+    if (localCountry) return localCountry
+
+    try {
+      const settings: any = await getVendorProfile()
+      return (
+        (settings?.country as string | undefined) ||
+        (settings?.vendorSettings?.country as string | undefined) ||
+        (settings?.data?.country as string | undefined) ||
+        (settings?.data?.vendorSettings?.country as string | undefined)
+      )
+    } catch {
+      return undefined
+    }
+  }
+
+  const ensureAudienceLocationPreselected = async (): Promise<boolean> => {
+    if (!draftLoaded) return false
+    if (audienceTargeting?.locations && audienceTargeting.locations.length > 0) return true
+
+    const country = (await resolveVendorCountry()) || (userCountry as string | null) || undefined
+    if (!country) return false
+
+    setAudienceTargeting({ locations: [{ address: country, type: 'text' }] })
+    return true
+  }
+
   // Default audience location to vendor country (if no draft locations already set)
   useEffect(() => {
-    if (!draftLoaded) return
-    if (audienceTargeting?.locations && audienceTargeting.locations.length > 0) return
-
-    const localCountry = (getCurrentUser() as any)?.vendorSettings?.country as string | undefined
-    if (localCountry) {
-      setAudienceTargeting({ locations: [{ address: localCountry, type: 'text' }] })
-      return
-    }
-
-    getVendorProfile()
-      .then((settings: any) => {
-        const country = (settings?.country as string | undefined) || (settings?.vendorSettings?.country as string | undefined)
-        if (country) {
-          setAudienceTargeting({ locations: [{ address: country, type: 'text' }] })
-        }
-      })
-      .catch(() => {})
+    void ensureAudienceLocationPreselected()
   }, [draftLoaded, audienceTargeting?.locations?.length])
 
   // Auto-save draft
@@ -554,11 +571,14 @@ const CreateCampaignPage: React.FC = () => {
       toast.error('Please fix the errors in the form')
       return
     }
+    await ensureAudienceLocationPreselected()
     setShowSummary(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handlePayment = async () => {
+    await ensureAudienceLocationPreselected()
+
     const budgetInNGN = parseFloat(formData.budget)
     if (isNaN(budgetInNGN) || budgetInNGN <= 0) {
       toast.error('Please enter a valid budget amount')

@@ -471,7 +471,6 @@ const SummaryCard: React.FC<{ form: FormState; currencySymbol: string }> = ({ fo
 
 interface PaymentSummaryProps {
   form: FormState
-  session: any
   vendorBalance: number | null
   userCurrency: string
   currencySymbol: string
@@ -481,7 +480,7 @@ interface PaymentSummaryProps {
 }
 
 const PaymentSummaryPage: React.FC<PaymentSummaryProps> = ({
-  form, session, vendorBalance, userCurrency, currencySymbol, onBack, onPay, paying,
+  form, vendorBalance, userCurrency, currencySymbol, onBack, onPay, paying,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<PayMethod | null>(null)
   const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'KES'>('USD')
@@ -746,7 +745,7 @@ const SECTIONS = [
 
 const CreateChallengePage: React.FC = () => {
   const router = useRouter()
-  const { selectedCurrency: userCurrency, currencySymbol } = useCurrency()
+  const { selectedCurrency: userCurrency, currencySymbol, userCountry } = useCurrency()
   const user = getCurrentUser()
 
   const [step, setStep]       = useState<Step>('form')
@@ -764,28 +763,40 @@ const CreateChallengePage: React.FC = () => {
     getVendorBalance().then(r => setVendorBalance(r.balance)).catch(() => {})
   }, [])
 
-  useEffect(() => {
-    if (audienceTargeting?.locations && audienceTargeting.locations.length > 0) return
+  const resolveVendorCountry = useCallback(async (): Promise<string | undefined> => {
+    const localCountry =
+      ((user as any)?.vendorSettings?.country as string | undefined) ||
+      ((user as any)?.country as string | undefined)
+    if (localCountry) return localCountry
 
-    const profileCountry = (user as any)?.vendorSettings?.country as string | undefined
-    if (profileCountry) {
-      setAudienceTargeting({
-        locations: [{ address: profileCountry, type: 'text' }],
-      })
-      return
+    try {
+      const settings: any = await getVendorProfile()
+      return (
+        (settings?.country as string | undefined) ||
+        (settings?.vendorSettings?.country as string | undefined) ||
+        (settings?.data?.country as string | undefined) ||
+        (settings?.data?.vendorSettings?.country as string | undefined)
+      )
+    } catch {
+      return undefined
     }
+  }, [user])
 
-    getVendorProfile()
-      .then((settings: any) => {
-        const country = (settings?.country as string | undefined) || (settings?.vendorSettings?.country as string | undefined)
-        if (country) {
-          setAudienceTargeting({
-            locations: [{ address: country, type: 'text' }],
-          })
-        }
-      })
-      .catch(() => {})
-  }, [audienceTargeting?.locations?.length])
+  const ensureAudienceLocationPreselected = useCallback(async (): Promise<boolean> => {
+    if (audienceTargeting?.locations && audienceTargeting.locations.length > 0) return true
+
+    const country = (await resolveVendorCountry()) || (userCountry as string | null) || undefined
+    if (!country) return false
+
+    setAudienceTargeting({
+      locations: [{ address: country, type: 'text' }],
+    })
+    return true
+  }, [audienceTargeting?.locations, resolveVendorCountry, userCountry])
+
+  useEffect(() => {
+    void ensureAudienceLocationPreselected()
+  }, [ensureAudienceLocationPreselected])
 
   const toggle = useCallback((id: string) => setOpen((o) => ({ ...o, [id]: !o[id] })), [])
 
@@ -821,8 +832,9 @@ const CreateChallengePage: React.FC = () => {
     return true
   }
 
-  const handleReviewAndPay = () => {
+  const handleReviewAndPay = async () => {
     if (!validate()) return
+    await ensureAudienceLocationPreselected()
     setStep('summary')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -862,6 +874,7 @@ const CreateChallengePage: React.FC = () => {
 
   const handlePay = async (method: PayMethod, currency: 'USD' | 'KES') => {
     if (!user?.id || !user?.email) { toast.error('Please log in'); return }
+    await ensureAudienceLocationPreselected()
 
     const payload = buildPayload()
 
@@ -1044,7 +1057,6 @@ const CreateChallengePage: React.FC = () => {
           {step === 'summary' && (
             <PaymentSummaryPage
               form={form}
-              session={session}
               vendorBalance={vendorBalance}
               userCurrency={userCurrency}
               currencySymbol={currencySymbol}
