@@ -53,6 +53,9 @@ export interface Challenge {
   rejectionNote?: string;
   _count?: { participations: number; submissions: number };
   latestLeaderboard?: LeaderboardEntry[];
+  socialPlatforms?: string[];
+  hashtags?: string[];
+  contentStyle?: 'CREATOR_CREATIVITY' | 'AS_BRIEFED';
 }
 
 export interface ChallengeParticipation {
@@ -139,6 +142,9 @@ export interface CreateChallengePayload {
   prizes: { structure: PrizeStructure; rank: number; prizeAmount: number; description?: string }[];
   audienceTargeting?: any;
   fraudConfig?: any;
+  socialPlatforms?: string[];
+  hashtags?: string[];
+  contentStyle?: 'CREATOR_CREATIVITY' | 'AS_BRIEFED';
   paymentMethod?: 'stripe' | 'paystack' | 'balance';
   transactionId?: string;
   sessionId?: string;

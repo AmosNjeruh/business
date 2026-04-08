@@ -24,6 +24,9 @@ interface CampaignSummaryProps {
     endDate: string
     requirements: string[]
     videoLink?: string
+    socialPlatforms?: string[]
+    hashtags?: string[]
+    contentStyle?: 'CREATOR_CREATIVITY' | 'AS_BRIEFED'
   }
   thumbnailImage: string | null
   promotionalImages: string[]
@@ -82,6 +85,24 @@ const CampaignSummary: React.FC<CampaignSummaryProps> = ({
     return objectiveMap[objective] || objective
   }
 
+  const summarizePlatforms = (platforms: string[] = []) => {
+    if (!platforms.length) return 'All Platforms'
+    const labels = platforms.map((p) => {
+      const v = p.toLowerCase()
+      if (v === 'x' || v === 'twitter') return 'Twitter/X'
+      if (v === 'instagram') return 'Instagram'
+      if (v === 'facebook') return 'Facebook'
+      if (v === 'tiktok') return 'TikTok'
+      if (v === 'youtube') return 'YouTube'
+      if (v === 'linkedin') return 'LinkedIn'
+      return p
+    })
+    const unique = Array.from(new Set(labels))
+    return unique.length >= 5 ? 'All Platforms' : unique.join(', ')
+  }
+
+  const ensureHash = (tag: string) => (tag.startsWith('#') ? tag : `#${tag.replace(/^#+/, '')}`)
+
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-500/10 dark:to-cyan-500/10 p-6 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
@@ -110,6 +131,28 @@ const CampaignSummary: React.FC<CampaignSummaryProps> = ({
             <p className="text-xs text-slate-500 dark:text-slate-400">Objective</p>
             <p className="text-slate-900 dark:text-white">{formatObjective(formData.objective)}</p>
           </div>
+          <div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Content Style</p>
+            <p className="text-slate-900 dark:text-white">
+              {formData.contentStyle === 'AS_BRIEFED' ? 'Post As Briefed' : 'Creator Creativity (Recommended)'}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Post on</p>
+            <p className="text-slate-900 dark:text-white">{summarizePlatforms(formData.socialPlatforms || [])}</p>
+          </div>
+          {(formData.hashtags || []).length > 0 && (
+            <div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-1">Required Hashtags</p>
+              <div className="flex flex-wrap gap-2">
+                {(formData.hashtags || []).map((tag) => (
+                  <span key={tag} className="text-xs px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                    {ensureHash(tag)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

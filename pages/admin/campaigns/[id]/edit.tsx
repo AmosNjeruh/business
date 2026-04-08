@@ -31,6 +31,15 @@ const PAY_STRUCTURES: { value: PayStructure; label: string; desc: string }[] = [
   { value: "COMMISSION_PER_SALE", label: "Commission on Sales", desc: "Percentage or fixed commission on each sale" },
 ];
 
+const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'x', label: 'Twitter/X', manual: true },
+  { value: 'linkedin', label: 'LinkedIn' },
+] as const;
+
 type Step = 1 | 2 | 3 | 4 | 5;
 
 interface FormData {
@@ -46,6 +55,9 @@ interface FormData {
   endDate: string;
   requirements: string[];
   isPublic: boolean;
+  socialPlatforms: string[];
+  hashtags: string[];
+  contentStyle: 'CREATOR_CREATIVITY' | 'AS_BRIEFED';
 }
 
 const STEPS = [
@@ -55,6 +67,16 @@ const STEPS = [
   { num: 4 as Step, label: "Schedule" },
   { num: 5 as Step, label: "Review" },
 ];
+
+const ensureHashPrefix = (raw: string): string => {
+  const trimmed = raw.trim().replace(/\s+/g, "");
+  if (!trimmed) return "";
+  const withoutHashes = trimmed.replace(/^#+/, "");
+  return withoutHashes ? `#${withoutHashes.toLowerCase()}` : "";
+};
+
+const allPlatformsSelected = (platforms: string[]) =>
+  CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.every((p) => platforms.includes(p.value));
 
 export default function EditCampaignPage() {
   const router = useRouter();
@@ -77,7 +99,12 @@ export default function EditCampaignPage() {
     endDate: "",
     requirements: [""],
     isPublic: true,
+    socialPlatforms: CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((p) => p.value),
+    hashtags: [],
+    contentStyle: "CREATOR_CREATIVITY",
   });
+  const [showIndividualPlatforms, setShowIndividualPlatforms] = useState(false);
+  const [hashtagInput, setHashtagInput] = useState("");
 
   // Get today in YYYY-MM-DD
   const today = new Date().toISOString().split("T")[0];
@@ -128,6 +155,13 @@ export default function EditCampaignPage() {
           endDate: formattedEndDate,
           requirements: requirementsArray,
           isPublic: campaign.isPublic !== false,
+          socialPlatforms: Array.isArray((campaign as any).socialPlatforms) && (campaign as any).socialPlatforms.length > 0
+            ? (campaign as any).socialPlatforms
+            : CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((p) => p.value),
+          hashtags: Array.isArray((campaign as any).hashtags)
+            ? (campaign as any).hashtags.map((t: string) => ensureHashPrefix(t)).filter(Boolean)
+            : [],
+          contentStyle: (campaign as any).contentStyle === 'AS_BRIEFED' ? 'AS_BRIEFED' : 'CREATOR_CREATIVITY',
         });
       } catch (err: any) {
         toast.error(err?.response?.data?.error || "Failed to load campaign");
@@ -147,6 +181,8 @@ export default function EditCampaignPage() {
       if (!form.title.trim()) e.title = "Title is required";
       if (!form.description.trim()) e.description = "Description is required";
       if (form.objective === "TRAFFIC" && !form.targetUrl.trim()) e.targetUrl = "Target URL is required for traffic campaigns";
+      if (!form.socialPlatforms.length) e.socialPlatforms = "Select at least one social platform";
+      if (!form.hashtags.length) e.hashtags = "Add at least one hashtag";
     }
     if (step === 3) {
       if (form.paymentStructure === "INFLUENCER" && (!form.paymentPerInfluencer || parseFloat(form.paymentPerInfluencer) <= 0))
@@ -189,6 +225,9 @@ export default function EditCampaignPage() {
         startDate: form.startDate,
         endDate: form.endDate,
         requirements: form.requirements.filter((r) => r.trim()),
+        socialPlatforms: form.socialPlatforms,
+        hashtags: form.hashtags.map(ensureHashPrefix).filter(Boolean),
+        contentStyle: form.contentStyle,
         isPublic: form.isPublic,
       });
       toast.success("Campaign updated successfully!");
@@ -329,6 +368,132 @@ export default function EditCampaignPage() {
                   ))}
                   <button type="button" onClick={() => set("requirements", [...form.requirements, ""])}
                     className="text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 mt-1">+ Add requirement</button>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/3 p-4 space-y-3">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Content Direction
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => set("contentStyle", "CREATOR_CREATIVITY")}
+                      className={`text-left p-3 rounded-lg border ${
+                        form.contentStyle === "CREATOR_CREATIVITY"
+                          ? "border-emerald-400 dark:border-emerald-400/50 bg-emerald-50 dark:bg-emerald-400/10"
+                          : "border-slate-200 dark:border-white/10 bg-white dark:bg-white/5"
+                      }`}
+                    >
+                      <p className="text-xs font-semibold text-slate-900 dark:text-white">Creator Creativity</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Recommended for better authenticity and conversion.</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => set("contentStyle", "AS_BRIEFED")}
+                      className={`text-left p-3 rounded-lg border ${
+                        form.contentStyle === "AS_BRIEFED"
+                          ? "border-emerald-400 dark:border-emerald-400/50 bg-emerald-50 dark:bg-emerald-400/10"
+                          : "border-slate-200 dark:border-white/10 bg-white dark:bg-white/5"
+                      }`}
+                    >
+                      <p className="text-xs font-semibold text-slate-900 dark:text-white">Post As Briefed</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Creators should follow your exact campaign messaging.</p>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/3 p-4 space-y-3">
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
+                    Allowed Platforms *
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => set("socialPlatforms", allPlatformsSelected(form.socialPlatforms) ? [] : CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((p) => p.value))}
+                    className={`w-full text-left px-3 py-3 rounded-lg border-2 transition-all ${
+                      allPlatformsSelected(form.socialPlatforms)
+                        ? "border-emerald-400 dark:border-emerald-400/50 bg-emerald-50 dark:bg-emerald-400/10"
+                        : "border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:border-emerald-300"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-slate-900 dark:text-white">All Platforms</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">Recommended</span>
+                    </div>
+                  </button>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {allPlatformsSelected(form.socialPlatforms) ? "Using all platforms (recommended)" : `Selected ${form.socialPlatforms.length} platform(s)`}
+                    </p>
+                    <button type="button" onClick={() => setShowIndividualPlatforms((v) => !v)} className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      {showIndividualPlatforms ? "Hide individual selection" : "Choose individual platforms"}
+                    </button>
+                  </div>
+                  {showIndividualPlatforms && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((platform) => {
+                        const selected = form.socialPlatforms.includes(platform.value);
+                        return (
+                          <button
+                            key={platform.value}
+                            type="button"
+                            onClick={() => set("socialPlatforms", selected ? form.socialPlatforms.filter((p) => p !== platform.value) : [...form.socialPlatforms, platform.value])}
+                            className={`text-left px-3 py-2 rounded-lg border ${
+                              selected
+                                ? "border-emerald-400 dark:border-emerald-400/50 bg-emerald-50 dark:bg-emerald-400/10"
+                                : "border-slate-200 dark:border-white/10 bg-white dark:bg-white/5"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-slate-900 dark:text-white">{platform.label}</span>
+                              {platform.manual ? <span className="text-[10px] text-amber-600 dark:text-amber-400">Manual</span> : null}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {errors.socialPlatforms && <p className="text-xs text-red-600 dark:text-red-400">{errors.socialPlatforms}</p>}
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Required Hashtags *</label>
+                    <div className="flex gap-2">
+                      <input
+                        value={hashtagInput}
+                        onChange={(e) => setHashtagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const normalized = ensureHashPrefix(hashtagInput);
+                            if (!normalized || form.hashtags.includes(normalized)) return;
+                            set("hashtags", [...form.hashtags, normalized]);
+                            setHashtagInput("");
+                          }
+                        }}
+                        placeholder="#brandcampaign"
+                        className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white"
+                      />
+                      <button type="button" onClick={() => {
+                        const normalized = ensureHashPrefix(hashtagInput);
+                        if (!normalized || form.hashtags.includes(normalized)) return;
+                        set("hashtags", [...form.hashtags, normalized]);
+                        setHashtagInput("");
+                      }} className="px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">
+                        Add
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">If `#` is missing, we add it automatically.</p>
+                    {form.hashtags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {form.hashtags.map((tag) => (
+                          <button key={tag} type="button" onClick={() => set("hashtags", form.hashtags.filter((t) => t !== tag))}
+                            className="text-xs px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                            {tag} ×
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {errors.hashtags && <p className="text-xs text-red-600 dark:text-red-400 mt-1">{errors.hashtags}</p>}
+                  </div>
                 </div>
 
                 {/* Visibility */}

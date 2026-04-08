@@ -32,6 +32,9 @@ export interface CreateCampaignData {
   isPublic?: boolean;
   requireConnectedSocialMedia?: boolean;
   audienceTargeting?: any;
+  socialPlatforms?: string[];
+  hashtags?: string[];
+  contentStyle?: 'CREATOR_CREATIVITY' | 'AS_BRIEFED';
   useBalance?: boolean;
 }
 

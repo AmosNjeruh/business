@@ -102,6 +102,26 @@ function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function summarizePlatforms(platforms?: string[]): string {
+  const list = (platforms || []).map((p) => p.toLowerCase())
+  if (list.length === 0 || list.length >= 5) return 'All Platforms'
+  const labels = list.map((p) =>
+    p === 'x' || p === 'twitter' ? 'Twitter/X' :
+    p === 'instagram' ? 'Instagram' :
+    p === 'facebook' ? 'Facebook' :
+    p === 'tiktok' ? 'TikTok' :
+    p === 'youtube' ? 'YouTube' :
+    p === 'linkedin' ? 'LinkedIn' : p
+  )
+  return Array.from(new Set(labels)).join(', ')
+}
+
+function ensureHash(tag: string): string {
+  const t = tag.trim()
+  if (!t) return t
+  return t.startsWith('#') ? t : `#${t.replace(/^#+/, '')}`
+}
+
 async function downloadImage(imageUrl: string, filename: string) {
   const response = await fetch(imageUrl)
   const blob = await response.blob()
@@ -862,6 +882,38 @@ const VendorChallengeDetailPage: React.FC = () => {
               <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">
                 {challenge.description || 'No description provided.'}
               </p>
+
+              {((challenge.socialPlatforms?.length ?? 0) > 0 || (challenge.hashtags?.length ?? 0) > 0) && (
+                <div className="mt-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/30 p-4">
+                  <h5 className="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">
+                    Where to Post & Hashtags
+                  </h5>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    <span className="text-gray-500 dark:text-gray-400">Content style:</span>{' '}
+                    <span className="font-semibold">
+                      {(challenge as any).contentStyle === 'AS_BRIEFED' ? 'Post As Briefed' : 'Creator Creativity (Recommended)'}
+                    </span>
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    <span className="text-gray-500 dark:text-gray-400">Post on:</span>{' '}
+                    <span className="font-semibold">{summarizePlatforms(challenge.socialPlatforms)}</span>
+                  </p>
+                  {challenge.socialPlatforms?.some((p) => ['x', 'twitter'].includes(String(p).toLowerCase())) && (
+                    <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-2.5 py-1.5 inline-block">
+                      Twitter/X is manual tracking (no official API).
+                    </p>
+                  )}
+                  {(challenge.hashtags?.length ?? 0) > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(challenge.hashtags || []).map((tag) => (
+                        <span key={tag} className="text-xs px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                          {ensureHash(tag)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-4 pt-5 border-t border-gray-100 dark:border-gray-700">
                 {[

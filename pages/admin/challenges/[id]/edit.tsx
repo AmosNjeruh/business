@@ -44,9 +44,18 @@ const METRIC_OPTIONS: { value: ChallengeMetricType; label: string; desc: string;
   { value: 'CUSTOM',  label: 'Custom',            desc: 'Metric tracked & updated manually by the platform admin', icon: '📊' },
 ]
 
+const SOCIAL_PLATFORM_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'x', label: 'Twitter/X', manual: true },
+  { value: 'linkedin', label: 'LinkedIn' },
+] as const
+
 const PRIZE_STRUCTURES: { value: PrizeStructure; label: string; desc: string; icon: string }[] = [
-  { value: 'WINNER_TAKES_ALL', label: 'Winner Takes All', desc: 'Top 1 partner gets the entire prize pool', icon: '🥇' },
   { value: 'TIERED',           label: 'Tiered (Top N)',   desc: 'Multiple ranked slots with different prizes', icon: '🏅' },
+  { value: 'WINNER_TAKES_ALL', label: 'Winner Takes All', desc: 'Top 1 partner gets the entire prize pool', icon: '🥇' },
   { value: 'POOL',             label: 'Pool Split',       desc: 'Equal split among all who hit the goal', icon: '🤝' },
 ]
 
@@ -76,6 +85,9 @@ interface FormState {
   prizeStructure: PrizeStructure
   prizeTiers: PrizeTier[]
   maxParticipants: string
+  socialPlatforms: string[]
+  hashtags: string[]
+  contentStyle: 'CREATOR_CREATIVITY' | 'AS_BRIEFED'
 }
 
 const INITIAL_FORM: FormState = {
@@ -93,6 +105,9 @@ const INITIAL_FORM: FormState = {
     { rank: 3, prizeAmount: '', description: '3rd place' },
   ],
   maxParticipants: '',
+  socialPlatforms: SOCIAL_PLATFORM_OPTIONS.map((p) => p.value),
+  hashtags: [],
+  contentStyle: 'CREATOR_CREATIVITY',
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -100,11 +115,18 @@ const INITIAL_FORM: FormState = {
 function sectionComplete(section: string, form: FormState): boolean {
   switch (section) {
     case 'basics':   return !!(form.title.trim() && form.description.trim())
-    case 'goal':     return !!(form.metricType && form.goalValue && form.startDate && form.endDate)
+    case 'goal':     return !!(form.metricType && form.goalValue && form.startDate && form.endDate && form.socialPlatforms.length > 0 && form.hashtags.length > 0)
     case 'prizes':   return form.prizeTiers.some((t) => parseFloat(t.prizeAmount) > 0)
     case 'audience': return true
     default:         return false
   }
+}
+
+const ensureHashPrefix = (raw: string): string => {
+  const trimmed = raw.trim().replace(/\s+/g, '')
+  if (!trimmed) return ''
+  const withoutHashes = trimmed.replace(/^#+/, '')
+  return withoutHashes ? `#${withoutHashes.toLowerCase()}` : ''
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -240,10 +262,32 @@ const GoalSection: React.FC<{
   form: FormState
   setForm: React.Dispatch<React.SetStateAction<FormState>>
 }> = ({ form, setForm }) => {
+  const [showIndividualPlatforms, setShowIndividualPlatforms] = useState(false)
+  const [hashtagInput, setHashtagInput] = useState('')
   const today = new Date().toISOString().split('T')[0]!
   const durationDays = form.startDate && form.endDate
     ? Math.max(0, Math.ceil((new Date(form.endDate).getTime() - new Date(form.startDate).getTime()) / 86_400_000))
     : null
+  const allPlatformsSelected = SOCIAL_PLATFORM_OPTIONS.every((p) => form.socialPlatforms.includes(p.value))
+
+  const togglePlatform = (platform: string) => {
+    const selected = form.socialPlatforms.includes(platform)
+    setForm((f) => ({
+      ...f,
+      socialPlatforms: selected ? f.socialPlatforms.filter((p) => p !== platform) : [...f.socialPlatforms, platform],
+    }))
+  }
+
+  const addHashtag = () => {
+    const normalized = ensureHashPrefix(hashtagInput)
+    if (!normalized) return
+    if (form.hashtags.includes(normalized)) {
+      setHashtagInput('')
+      return
+    }
+    setForm((f) => ({ ...f, hashtags: [...f.hashtags, normalized] }))
+    setHashtagInput('')
+  }
 
   return (
     <div className="space-y-6">
@@ -314,6 +358,116 @@ const GoalSection: React.FC<{
           <span>Duration: <strong>{durationDays} day{durationDays !== 1 ? 's' : ''}</strong></span>
         </div>
       )}
+
+      <div className="space-y-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/70 dark:bg-gray-800/50 p-4">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Content Direction
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, contentStyle: 'CREATOR_CREATIVITY' }))}
+              className={`text-left p-3 rounded-lg border ${
+                form.contentStyle === 'CREATOR_CREATIVITY'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700/40'
+              }`}
+            >
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Creator Creativity</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Recommended for better conversion due to authenticity.</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm((f) => ({ ...f, contentStyle: 'AS_BRIEFED' }))}
+              className={`text-left p-3 rounded-lg border ${
+                form.contentStyle === 'AS_BRIEFED'
+                  ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                  : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700/40'
+              }`}
+            >
+              <p className="text-sm font-semibold text-gray-900 dark:text-white">Post As Briefed</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Creators should follow your exact messaging.</p>
+            </button>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Allowed Platforms <span className="text-red-500">*</span>
+          </label>
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, socialPlatforms: allPlatformsSelected ? [] : SOCIAL_PLATFORM_OPTIONS.map((p) => p.value) }))}
+            className={`w-full text-left px-3 py-3 rounded-lg border-2 transition-all ${
+              allPlatformsSelected ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700/40 hover:border-indigo-300'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">All Platforms</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">Recommended</span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Includes Instagram, Facebook, TikTok, YouTube, Twitter/X, and LinkedIn</p>
+          </button>
+          <div className="flex items-center justify-between mt-2">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {allPlatformsSelected ? 'Using all platforms (recommended)' : `Selected ${form.socialPlatforms.length} platform(s)`}
+            </p>
+            <button type="button" onClick={() => setShowIndividualPlatforms((v) => !v)} className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700">
+              {showIndividualPlatforms ? 'Hide individual selection' : 'Choose individual platforms'}
+            </button>
+          </div>
+          {showIndividualPlatforms && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+              {SOCIAL_PLATFORM_OPTIONS.map((platform) => {
+                const selected = form.socialPlatforms.includes(platform.value)
+                return (
+                  <button key={platform.value} type="button" onClick={() => togglePlatform(platform.value)}
+                    className={`text-left px-3 py-2.5 rounded-lg border transition-all ${
+                      selected ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700/40 text-gray-700 dark:text-gray-300 hover:border-indigo-300'
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{platform.label}</span>
+                      {'manual' in platform && platform.manual ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Manual tracking</span> : null}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Required Hashtags <span className="text-red-500">*</span>
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={hashtagInput}
+              onChange={(e) => setHashtagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  addHashtag()
+                }
+              }}
+              placeholder="#brandchallenge"
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+            <button type="button" onClick={addHashtag} className="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">Add</button>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Tip: if you forget `#`, we add it automatically.</p>
+          {form.hashtags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {form.hashtags.map((tag) => (
+                <button key={tag} type="button" onClick={() => setForm((f) => ({ ...f, hashtags: f.hashtags.filter((t) => t !== tag) }))}
+                  className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+                  {tag} <span aria-hidden>×</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }
@@ -361,7 +515,12 @@ const PrizesSection: React.FC<{
               }`}
             >
               <div className="text-xl mb-1.5">{ps.icon}</div>
-              <div className="font-semibold text-sm text-gray-900 dark:text-white">{ps.label}</div>
+              <div className="flex items-center gap-2">
+                <div className="font-semibold text-sm text-gray-900 dark:text-white">{ps.label}</div>
+                {ps.value === 'TIERED' && (
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">Recommended</span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{ps.desc}</div>
             </button>
           ))}
@@ -514,6 +673,13 @@ const EditChallengePage: React.FC = () => {
           prizeStructure,
           prizeTiers: normalizedTiers.length > 0 ? normalizedTiers : INITIAL_FORM.prizeTiers,
           maxParticipants: String((res?.fraudConfig?.maxParticipants ?? challengeAny?.fraudConfig?.maxParticipants ?? '') || ''),
+          socialPlatforms: Array.isArray(challengeAny?.socialPlatforms) && challengeAny.socialPlatforms.length > 0
+            ? challengeAny.socialPlatforms
+            : INITIAL_FORM.socialPlatforms,
+          hashtags: Array.isArray(challengeAny?.hashtags)
+            ? challengeAny.hashtags.map((t: string) => ensureHashPrefix(t)).filter(Boolean)
+            : [],
+          contentStyle: challengeAny?.contentStyle === 'AS_BRIEFED' ? 'AS_BRIEFED' : 'CREATOR_CREATIVITY',
         })
         setChallengeStatus(challengeData.status || '')
         setAudienceTargeting((res?.audienceTargeting || challengeAny?.audienceTargeting || null) as any)
@@ -577,6 +743,8 @@ const EditChallengePage: React.FC = () => {
     if (!form.startDate)          { toast.error('Start date is required');       return false }
     if (!form.endDate)            { toast.error('End date is required');         return false }
     if (new Date(form.startDate) >= new Date(form.endDate)) { toast.error('End date must be after start date'); return false }
+    if (!form.socialPlatforms.length) { toast.error('Select at least one social platform'); return false }
+    if (!form.hashtags.length) { toast.error('Add at least one hashtag'); return false }
     const total = form.prizeTiers.reduce((s, t) => s + (parseFloat(t.prizeAmount) || 0), 0)
     if (total <= 0) { toast.error('Total prize pool must be greater than 0'); return false }
     return true
@@ -612,6 +780,9 @@ const EditChallengePage: React.FC = () => {
       fraudConfig: {
         maxParticipants: form.maxParticipants ? parseInt(form.maxParticipants) : undefined,
       },
+      socialPlatforms: form.socialPlatforms,
+      hashtags: form.hashtags.map(ensureHashPrefix).filter(Boolean),
+      contentStyle: form.contentStyle,
     }
   }
 

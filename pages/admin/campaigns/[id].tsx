@@ -58,6 +58,26 @@ function fmtNum(n: number): string {
   return String(n);
 }
 
+function summarizePlatforms(platforms?: string[]): string {
+  const list = (platforms || []).map((p) => p.toLowerCase());
+  if (list.length === 0 || list.length >= 5) return "All Platforms";
+  const labels = list.map((p) =>
+    p === "x" || p === "twitter" ? "Twitter/X" :
+    p === "instagram" ? "Instagram" :
+    p === "facebook" ? "Facebook" :
+    p === "tiktok" ? "TikTok" :
+    p === "youtube" ? "YouTube" :
+    p === "linkedin" ? "LinkedIn" : p
+  );
+  return Array.from(new Set(labels)).join(", ");
+}
+
+function ensureHash(tag: string): string {
+  const t = tag.trim();
+  if (!t) return t;
+  return t.startsWith("#") ? t : `#${t.replace(/^#+/, "")}`;
+}
+
 // ── sub-components ───────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -478,6 +498,38 @@ export default function CampaignDetailPage() {
           {/* ── Overview tab ──────────────────────────────────────────────── */}
           {activeTab === "overview" && (
             <div className="space-y-5">
+              {(campaign.socialPlatforms?.length > 0 || campaign.hashtags?.length > 0) && (
+                <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5">
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Where to Post & Hashtags</h3>
+                  <div className="space-y-3">
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      <span className="text-slate-500 dark:text-slate-400">Content style:</span>{" "}
+                      <span className="font-semibold">
+                        {campaign.contentStyle === "AS_BRIEFED" ? "Post As Briefed" : "Creator Creativity (Recommended)"}
+                      </span>
+                    </p>
+                    <p className="text-sm text-slate-700 dark:text-slate-300">
+                      <span className="text-slate-500 dark:text-slate-400">Post on:</span>{" "}
+                      <span className="font-semibold">{summarizePlatforms(campaign.socialPlatforms)}</span>
+                    </p>
+                    {campaign.socialPlatforms?.some((p: string) => ["x", "twitter"].includes(String(p).toLowerCase())) && (
+                      <p className="text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-2.5 py-1.5 inline-block">
+                        Twitter/X is manual tracking (no official API).
+                      </p>
+                    )}
+                    {campaign.hashtags?.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {campaign.hashtags.map((tag: string) => (
+                          <span key={tag} className="text-xs px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">
+                            {ensureHash(tag)}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Requirements */}
               {campaign.requirements?.length > 0 && (
                 <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5">

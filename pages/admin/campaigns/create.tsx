@@ -26,6 +26,15 @@ import CampaignSummaryPage from '@/components/admin/campaigns/CampaignSummaryPag
 import CampaignPreviewModal from '@/components/admin/campaigns/CampaignPreviewModal'
 import useCurrency from '@/hooks/useCurrency'
 
+const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'x', label: 'Twitter/X', manual: true },
+  { value: 'linkedin', label: 'LinkedIn' },
+] as const
+
 interface FollowerTier {
   minFollowers: number
   maxFollowers: number | null
@@ -43,6 +52,8 @@ const CreateCampaignPage: React.FC = () => {
   const [showSummary, setShowSummary] = useState(false)
   const [currentStep, setCurrentStep] = useState<'goal' | 'create' | 'summary'>('goal')
   const [showPreview, setShowPreview] = useState(false)
+  const [showIndividualPlatforms, setShowIndividualPlatforms] = useState(false)
+  const [hashtagInput, setHashtagInput] = useState('')
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paystack' | null>(null)
   const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'KES' | 'NGN'>('USD')
   const USD_TO_NGN = 1600
@@ -76,6 +87,9 @@ const CreateCampaignPage: React.FC = () => {
     endDate: string
     requirements: string[]
     videoLink: string
+    socialPlatforms: string[]
+    hashtags: string[]
+    contentStyle: 'CREATOR_CREATIVITY' | 'AS_BRIEFED'
   }>({
     title: '',
     description: '',
@@ -97,6 +111,9 @@ const CreateCampaignPage: React.FC = () => {
     endDate: '',
     requirements: [''],
     videoLink: '',
+    socialPlatforms: CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((p) => p.value),
+    hashtags: [],
+    contentStyle: 'CREATOR_CREATIVITY',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [selectedProducts, setSelectedProducts] = useState<Array<{
@@ -117,7 +134,15 @@ const CreateCampaignPage: React.FC = () => {
         const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY)
         if (savedDraft) {
           const draft = JSON.parse(savedDraft)
-          if (draft.formData) setFormData(draft.formData)
+          if (draft.formData) {
+            setFormData((prev) => ({
+              ...prev,
+              ...draft.formData,
+              requirements: Array.isArray(draft.formData.requirements) ? draft.formData.requirements : prev.requirements,
+              socialPlatforms: Array.isArray(draft.formData.socialPlatforms) ? draft.formData.socialPlatforms : prev.socialPlatforms,
+              hashtags: Array.isArray(draft.formData.hashtags) ? draft.formData.hashtags : prev.hashtags,
+            }))
+          }
           if (draft.isPublic !== undefined) setIsPublic(draft.isPublic)
           if (draft.requireConnectedSocialMedia !== undefined) setRequireConnectedSocialMedia(draft.requireConnectedSocialMedia)
           if (draft.audienceTargeting) setAudienceTargeting(draft.audienceTargeting)
@@ -560,10 +585,44 @@ const CreateCampaignPage: React.FC = () => {
     if (formData.videoLink && !isValidUrl(formData.videoLink)) {
       newErrors.videoLink = 'Please enter a valid URL'
     }
+    if (!formData.socialPlatforms?.length) newErrors.socialPlatforms = 'Select at least one social platform'
+    if (!formData.hashtags?.length) newErrors.hashtags = 'Add at least one hashtag'
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
+
+  const ensureHashPrefix = (raw: string) => {
+    const trimmed = raw.trim().replace(/\s+/g, '')
+    if (!trimmed) return ''
+    const withoutHashes = trimmed.replace(/^#+/, '')
+    return withoutHashes ? `#${withoutHashes.toLowerCase()}` : ''
+  }
+
+  const toggleSocialPlatform = (platform: string) => {
+    const selected = (formData.socialPlatforms || []).includes(platform)
+    setFormData({
+      ...formData,
+      socialPlatforms: selected
+        ? (formData.socialPlatforms || []).filter((p) => p !== platform)
+        : [...(formData.socialPlatforms || []), platform],
+    })
+  }
+
+  const addHashtag = () => {
+    const normalized = ensureHashPrefix(hashtagInput)
+    if (!normalized) return
+    if ((formData.hashtags || []).includes(normalized)) {
+      setHashtagInput('')
+      return
+    }
+    setFormData({ ...formData, hashtags: [...(formData.hashtags || []), normalized] })
+    setHashtagInput('')
+  }
+
+  const allPlatformsSelected = CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.every((p) =>
+    (formData.socialPlatforms || []).includes(p.value)
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -608,6 +667,9 @@ const CreateCampaignPage: React.FC = () => {
         endDate: formData.endDate,
         requirements: formData.requirements.filter((r) => r.trim() !== ''),
         videoLink: formData.videoLink?.trim() || null,
+        socialPlatforms: formData.socialPlatforms || [],
+        hashtags: (formData.hashtags || []).map(ensureHashPrefix).filter(Boolean),
+        contentStyle: formData.contentStyle,
         isPublic: isPublic,
         requireConnectedSocialMedia,
         audienceTargeting: audienceTargeting,
@@ -691,6 +753,9 @@ const CreateCampaignPage: React.FC = () => {
         endDate: formData.endDate,
         requirements: formData.requirements.filter((r) => r.trim() !== ''),
         videoLink: formData.videoLink?.trim() || null,
+        socialPlatforms: formData.socialPlatforms || [],
+        hashtags: (formData.hashtags || []).map(ensureHashPrefix).filter(Boolean),
+        contentStyle: formData.contentStyle,
         isPublic: isPublic,
         requireConnectedSocialMedia: requireConnectedSocialMedia,
         audienceTargeting: audienceTargeting,
@@ -969,6 +1034,144 @@ const CreateCampaignPage: React.FC = () => {
                     onAdd={addRequirement}
                     onRemove={removeRequirement}
                   />
+                  <div className="bg-white dark:bg-slate-800 rounded-lg p-6 border border-slate-200 dark:border-white/10 shadow-sm space-y-4">
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Social Platforms & Hashtags</h2>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Allowed Platforms <span className="text-red-500">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, socialPlatforms: allPlatformsSelected ? [] : CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((p) => p.value) })}
+                        className={`w-full text-left px-3 py-3 rounded-lg border-2 transition-all ${
+                          allPlatformsSelected
+                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                            : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-700/40 hover:border-emerald-300'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-semibold text-slate-900 dark:text-white">All Platforms</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                            Recommended
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Includes Instagram, Facebook, TikTok, YouTube, Twitter/X, and LinkedIn
+                        </p>
+                      </button>
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {allPlatformsSelected ? 'Using all platforms (recommended)' : `Selected ${(formData.socialPlatforms || []).length} platform(s)`}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setShowIndividualPlatforms((v) => !v)}
+                          className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700"
+                        >
+                          {showIndividualPlatforms ? 'Hide individual selection' : 'Choose individual platforms'}
+                        </button>
+                      </div>
+                      {showIndividualPlatforms && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                          {CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((platform) => {
+                            const selected = (formData.socialPlatforms || []).includes(platform.value)
+                            return (
+                              <button
+                                key={platform.value}
+                                type="button"
+                                onClick={() => toggleSocialPlatform(platform.value)}
+                                className={`text-left px-3 py-2.5 rounded-lg border transition-all ${
+                                  selected
+                                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300'
+                                    : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300 hover:border-emerald-300'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium">{platform.label}</span>
+                                  {'manual' in platform && platform.manual ? (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+                                      Manual tracking
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                      {errors.socialPlatforms && <p className="mt-1 text-xs text-red-500">{errors.socialPlatforms}</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Content Direction
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, contentStyle: 'CREATOR_CREATIVITY' })}
+                          className={`text-left p-3 rounded-lg border ${
+                            formData.contentStyle === 'CREATOR_CREATIVITY'
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-700/40'
+                          }`}
+                        >
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">Creator Creativity</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Recommended for better authenticity and conversion.</p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, contentStyle: 'AS_BRIEFED' })}
+                          className={`text-left p-3 rounded-lg border ${
+                            formData.contentStyle === 'AS_BRIEFED'
+                              ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20'
+                              : 'border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-700/40'
+                          }`}
+                        >
+                          <p className="text-sm font-semibold text-slate-900 dark:text-white">Post As Briefed</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Creators should follow your exact campaign messaging.</p>
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        Required Hashtags <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={hashtagInput}
+                          onChange={(e) => setHashtagInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              addHashtag()
+                            }
+                          }}
+                          placeholder="#brandcampaign"
+                          className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-700 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                        <button type="button" onClick={addHashtag} className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold">
+                          Add
+                        </button>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Tip: if you forget `#`, we add it automatically.</p>
+                      {(formData.hashtags || []).length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {(formData.hashtags || []).map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, hashtags: (formData.hashtags || []).filter((t) => t !== tag) })}
+                              className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300"
+                            >
+                              {tag} <span aria-hidden>×</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {errors.hashtags && <p className="mt-1 text-xs text-red-500">{errors.hashtags}</p>}
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4 sm:space-y-6">

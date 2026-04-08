@@ -27,6 +27,9 @@ interface CampaignSummaryPageProps {
     endDate: string
     requirements: string[]
     videoLink?: string
+    socialPlatforms?: string[]
+    hashtags?: string[]
+    contentStyle?: 'CREATOR_CREATIVITY' | 'AS_BRIEFED'
   }
   thumbnailImage: string | null
   promotionalImages: string[]
