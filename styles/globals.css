@@ -77,3 +77,28 @@ html:not(.dark) *::-webkit-scrollbar-thumb {
   background-size: 200% 200%;
   animation: gradient 3s ease infinite;
 }
+
+/* ── Business Suite: wrap to *container* width (sidebar + AI column), not viewport breakpoints ── */
+@layer utilities {
+  .bus-responsive-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  }
+  .bus-responsive-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 10.5rem), 1fr));
+  }
+  .bus-responsive-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
+  }
+  .bus-responsive-two-col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  }
+  /* Small KPI pills (6-across style) — wraps to main column width */
+  .bus-responsive-dense-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 8rem), 1fr));
+  }
+}

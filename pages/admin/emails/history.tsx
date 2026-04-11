@@ -189,7 +189,7 @@ const VendorEmailHistoryPage: React.FC = () => {
 
         {/* Stats Overview */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="bus-responsive-stat-grid gap-4 mb-8">
             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-md border border-gray-200 dark:border-gray-700">
               <div className="flex items-center">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 dark:text-blue-400 mr-3">
@@ -261,7 +261,7 @@ const VendorEmailHistoryPage: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bus-responsive-two-col gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Search Campaigns
@@ -434,7 +434,7 @@ const VendorEmailHistoryPage: React.FC = () => {
                         <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Recent Events:
                         </h5>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <div className="bus-responsive-card-grid gap-2">
                           {campaign.events.slice(0, 6).map((event: any, index: number) => (
                             <div key={index} className="text-xs bg-gray-100 dark:bg-gray-700 rounded px-2 py-1">
                               <span className="font-medium">{event.eventType}</span>

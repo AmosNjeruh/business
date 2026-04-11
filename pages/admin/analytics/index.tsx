@@ -436,7 +436,7 @@ const AdminAnalyticsPage: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto">
+        <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
           {tabs.map((t) => (
             <button
               key={t.id}
@@ -459,7 +459,7 @@ const AdminAnalyticsPage: React.FC = () => {
         {activeTab === 'overview' && (
           <>
             {/* KPI grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bus-responsive-stat-grid gap-4">
               <KPICard
                 label="Total Campaigns"
                 value={a?.totalCampaigns || 0}
@@ -491,7 +491,7 @@ const AdminAnalyticsPage: React.FC = () => {
             </div>
 
             {/* ROI and Conversion Metrics */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bus-responsive-stat-grid gap-4">
               {[
                 { label: "ROI", val: `${roi}%`, icon: FaChartLine, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-500/5 border-emerald-200 dark:border-emerald-500/20", desc: "Return on investment" },
                 { label: "Conversion Rate", val: `${conversionRate}%`, icon: FaPercentage, color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-500/5 border-blue-200 dark:border-blue-500/20", desc: "Applications to conversions" },
@@ -509,7 +509,7 @@ const AdminAnalyticsPage: React.FC = () => {
 
             {/* Time Series Charts */}
             {!isTimeSeriesLoading && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bus-responsive-two-col gap-6">
                 <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-6 shadow-sm">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                     <FaMoneyBillWave className="h-4 w-4 text-emerald-500" />
@@ -558,7 +558,7 @@ const AdminAnalyticsPage: React.FC = () => {
             )}
 
             {/* Two-column: Top Campaigns + Top Creators */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bus-responsive-two-col gap-6">
               {/* Top Campaigns */}
               <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-slate-200 dark:border-white/8 flex items-center justify-between">
@@ -636,7 +636,7 @@ const AdminAnalyticsPage: React.FC = () => {
             {((a as any)?.topAffiliates || []).length > 0 && (
               <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 shadow-sm p-5">
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-4">Top Affiliates</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bus-responsive-card-grid gap-4">
                   {((a as any)?.topAffiliates || []).slice(0, 6).map((aff: any, i: number) => (
                     <div key={aff.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/6">
                       <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0">
@@ -687,7 +687,7 @@ const AdminAnalyticsPage: React.FC = () => {
                 </div>
               ) : campaignData ? (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="bus-responsive-dense-grid gap-3">
                     {[
                       { label: "Impressions", val: fmtNum(campaignData.impressions || 0), icon: FaEye, color: "text-blue-600 dark:text-blue-400" },
                       { label: "Clicks", val: fmtNum(campaignData.clicks || 0), icon: FaMousePointer, color: "text-purple-600 dark:text-purple-400" },
@@ -704,7 +704,7 @@ const AdminAnalyticsPage: React.FC = () => {
                     ))}
                   </div>
                   {campaignData.ctr && (
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="bus-responsive-stat-grid gap-4">
                       <div className="rounded-xl bg-blue-50 dark:bg-blue-500/5 border border-blue-200 dark:border-blue-500/20 p-4 text-center">
                         <p className="text-xs text-blue-600 dark:text-blue-400 mb-1">CTR</p>
                         <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{(campaignData.ctr * 100).toFixed(2)}%</p>
@@ -761,7 +761,7 @@ const AdminAnalyticsPage: React.FC = () => {
                             <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{partner.name || "Partner"}</p>
                             <span className="text-xs font-bold text-yellow-600 dark:text-yellow-400">#{i + 1}</span>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                          <div className="bus-responsive-stat-grid gap-3 text-xs">
                             <div>
                               <p className="text-slate-500 dark:text-slate-400">Campaigns</p>
                               <p className="font-bold text-slate-900 dark:text-white">{partner.campaignsCount || 0}</p>

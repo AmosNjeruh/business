@@ -27,7 +27,7 @@ const CampaignScheduleForm: React.FC<CampaignScheduleFormProps> = ({
     <div className="bg-white dark:bg-slate-900/70 rounded-xl p-6 border border-slate-200 dark:border-white/10 shadow-sm">
       <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-4">Campaign Schedule</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="bus-responsive-two-col gap-4">
         <div>
           <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Start Date *</label>
           <input

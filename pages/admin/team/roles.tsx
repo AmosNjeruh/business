@@ -309,7 +309,7 @@ const AdminTeamRolesPage: React.FC = () => {
                           <h3 className="text-xs font-bold text-slate-700 dark:text-slate-200 uppercase tracking-wide border-b border-slate-200 dark:border-white/10 pb-1.5">
                             {category}
                           </h3>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                          <div className="bus-responsive-card-grid gap-3">
                             {perms.map((p) => {
                               const isSelected = selectedPermissionIds.has(p.id);
                               return (

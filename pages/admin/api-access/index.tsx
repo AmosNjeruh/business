@@ -273,7 +273,7 @@ export default function ApiAccessPage() {
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 border border-slate-200 dark:border-white/8 p-6 sm:p-8">
           <div className="absolute -top-10 -right-10 h-48 w-48 rounded-full bg-cyan-500/8 blur-3xl" />
           <div className="absolute bottom-0 left-16 h-32 w-32 rounded-full bg-indigo-500/8 blur-3xl" />
-          <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="relative flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-3">
                 <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-400 to-indigo-500 flex items-center justify-center">
@@ -284,7 +284,7 @@ export default function ApiAccessPage() {
                   <p className="text-xs text-slate-400">Developer Portal — integrate Trend360 into your projects</p>
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 mt-4">
+              <div className="flex flex-wrap gap-2 mt-4 max-w-full">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-xs font-medium text-cyan-300"><FaBolt className="h-2.5 w-2.5" /> REST API</span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300"><FaShieldAlt className="h-2.5 w-2.5" /> JWT Bearer Auth</span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-300"><FaGlobe className="h-2.5 w-2.5" /> JSON Responses</span>
@@ -406,7 +406,7 @@ export default function ApiAccessPage() {
         </div>
 
         {/* ── Base URL ──────────────────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bus-responsive-two-col gap-6">
           <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <FaGlobe className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
@@ -481,7 +481,7 @@ export default function ApiAccessPage() {
               {copiedCode ? "Copied!" : "Copy"}
             </button>
           </div>
-          <div className="flex gap-0 border-b border-slate-200 dark:border-white/8 overflow-x-auto">
+          <div className="flex flex-wrap gap-0 border-b border-slate-200 dark:border-white/8">
             {(Object.keys(CODE_EXAMPLES) as Array<keyof typeof CODE_EXAMPLES>).map((lang) => (
               <button key={lang} onClick={() => setSelectedLang(lang)}
                 className={`px-4 py-2.5 text-xs font-semibold capitalize whitespace-nowrap transition-colors border-b-2 ${

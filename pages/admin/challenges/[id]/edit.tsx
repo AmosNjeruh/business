@@ -295,7 +295,7 @@ const GoalSection: React.FC<{
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
           Performance Metric <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="bus-responsive-two-col gap-2">
           {METRIC_OPTIONS.map((m) => (
             <button key={m.value} type="button"
               onClick={() => setForm((f) => ({ ...f, metricType: m.value }))}
@@ -314,7 +314,7 @@ const GoalSection: React.FC<{
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-3">
+      <div className="bus-responsive-tile-grid gap-3">
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
             Goal Target <span className="text-red-500">*</span>
@@ -364,7 +364,7 @@ const GoalSection: React.FC<{
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Content Direction
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="bus-responsive-two-col gap-2">
             <button
               type="button"
               onClick={() => setForm((f) => ({ ...f, contentStyle: 'CREATOR_CREATIVITY' }))}
@@ -417,7 +417,7 @@ const GoalSection: React.FC<{
             </button>
           </div>
           {showIndividualPlatforms && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+            <div className="bus-responsive-two-col gap-2 mt-2">
               {SOCIAL_PLATFORM_OPTIONS.map((platform) => {
                 const selected = form.socialPlatforms.includes(platform.value)
                 return (
@@ -504,7 +504,7 @@ const PrizesSection: React.FC<{
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
           Prize Structure <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-3">
+        <div className="bus-responsive-tile-grid gap-3">
           {PRIZE_STRUCTURES.map((ps) => (
             <button key={ps.value} type="button"
               onClick={() => setForm((f) => ({ ...f, prizeStructure: ps.value }))}
@@ -515,12 +515,10 @@ const PrizesSection: React.FC<{
               }`}
             >
               <div className="text-xl mb-1.5">{ps.icon}</div>
-              <div className="flex items-center gap-2">
-                <div className="font-semibold text-sm text-gray-900 dark:text-white">{ps.label}</div>
-                {ps.value === 'TIERED' && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">Recommended</span>
-                )}
-              </div>
+              <div className="font-semibold text-sm text-gray-900 dark:text-white">{ps.label}</div>
+              {ps.value === 'TIERED' && (
+                <span className="inline-flex w-fit max-w-full mt-1 text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">Recommended</span>
+              )}
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{ps.desc}</div>
             </button>
           ))}
@@ -854,7 +852,7 @@ const EditChallengePage: React.FC = () => {
           )}
 
               {/* Two-column layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bus-responsive-two-col gap-4 sm:gap-6">
                 <div className="space-y-4">
                   {SECTIONS.filter((s) => s.id === 'basics' || s.id === 'goal').map((s) => (
                     <Section key={s.id} id={s.id} title={s.title} subtitle={s.subtitle} icon={s.icon}

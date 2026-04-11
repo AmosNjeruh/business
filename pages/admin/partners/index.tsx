@@ -7,6 +7,10 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import AdminLayout from "@/components/admin/Layout";
+import {
+  BUSINESS_COPILOT_FILTER_EVENT,
+  type CopilotPartnersFilterDetail,
+} from "@/lib/businessAssistantNavigate";
 import { getPartners, getInfluencers, inviteInfluencer, getCampaigns, getCategories, getFavoritePartners, addPartnerToFavorites, removePartnerFromFavorites, getBookmarkCategories, updateBookmarkCategory } from "@/services/vendor";
 import {
   FaUsers, FaSearch, FaSpinner, FaStar, FaUserPlus, FaBullhorn,
@@ -452,6 +456,132 @@ const AdminPartnersPage: React.FC = () => {
     }, 400);
     return () => clearTimeout(timer);
   }, [search]);
+
+  /** AI copilot: apply filters immediately when the navigate tool fires. */
+  useEffect(() => {
+    const onCopilot = (ev: Event) => {
+      const e = ev as CustomEvent<CopilotPartnersFilterDetail>;
+      if (e.detail?.page !== "partners") return;
+      if (e.detail.search) {
+        const t = e.detail.search.trim();
+        setSearch(t);
+        setDebouncedSearch(t);
+      }
+      if (e.detail.category) setCategoryFilter(e.detail.category);
+      if (e.detail.niche) setNicheFilter(e.detail.niche);
+      if (e.detail.minFollowers) {
+        const n = parseInt(e.detail.minFollowers, 10);
+        if (!Number.isNaN(n) && n >= 0) setMinFollowersFilter(String(n));
+      }
+      if (e.detail.maxFollowers) {
+        const n = parseInt(e.detail.maxFollowers, 10);
+        if (!Number.isNaN(n) && n >= 0) setMaxFollowersFilter(String(n));
+      }
+      if (e.detail.platform) {
+        const p = e.detail.platform.trim().toLowerCase();
+        setPlatformFilter(p === "x" ? "twitter" : p);
+      }
+      if (e.detail.engagement) {
+        const eng = e.detail.engagement.trim().toLowerCase();
+        if (["all", "high", "medium", "low"].includes(eng)) {
+          setEngagementFilter(eng);
+        }
+      }
+      setPagination((p) => ({ ...p, page: 1 }));
+    };
+    window.addEventListener(
+      BUSINESS_COPILOT_FILTER_EVENT,
+      onCopilot as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        BUSINESS_COPILOT_FILTER_EVENT,
+        onCopilot as EventListener
+      );
+  }, []);
+
+  /** Deep links & copilot navigation: search, taxonomy, followers, platform, engagement — then strip from URL. */
+  useEffect(() => {
+    if (!router.isReady || router.pathname !== "/admin/partners") return;
+    const q = router.query;
+    const pick = (v: string | string[] | undefined): string => {
+      if (typeof v === "string") return v.trim();
+      if (Array.isArray(v) && v[0]) return String(v[0]).trim();
+      return "";
+    };
+    const searchVal = pick(q.search) || pick(q.q);
+    const nicheVal = pick(q.niche);
+    const catVal = pick(q.category);
+    const minFVal = pick(q.minFollowers);
+    const maxFVal = pick(q.maxFollowers);
+    const platformVal = pick(q.platform);
+    const engagementVal = pick(q.engagement);
+    if (
+      !searchVal &&
+      !nicheVal &&
+      !catVal &&
+      !minFVal &&
+      !maxFVal &&
+      !platformVal &&
+      !engagementVal
+    ) {
+      return;
+    }
+
+    if (searchVal) {
+      setSearch(searchVal);
+      setDebouncedSearch(searchVal);
+    }
+    if (catVal) setCategoryFilter(catVal);
+    if (nicheVal) setNicheFilter(nicheVal);
+    if (minFVal) {
+      const n = parseInt(minFVal, 10);
+      if (!Number.isNaN(n) && n >= 0) setMinFollowersFilter(String(n));
+    }
+    if (maxFVal) {
+      const n = parseInt(maxFVal, 10);
+      if (!Number.isNaN(n) && n >= 0) setMaxFollowersFilter(String(n));
+    }
+    if (platformVal) {
+      const p = platformVal.toLowerCase();
+      setPlatformFilter(p === "x" ? "twitter" : p);
+    }
+    if (engagementVal) {
+      const eng = engagementVal.toLowerCase();
+      if (["all", "high", "medium", "low"].includes(eng)) {
+        setEngagementFilter(eng);
+      }
+    }
+    setPagination((p) => ({ ...p, page: 1 }));
+
+    const nextQuery = { ...q };
+    delete nextQuery.search;
+    delete nextQuery.q;
+    delete nextQuery.niche;
+    delete nextQuery.category;
+    delete nextQuery.minFollowers;
+    delete nextQuery.maxFollowers;
+    delete nextQuery.platform;
+    delete nextQuery.engagement;
+
+    void router.replace(
+      { pathname: "/admin/partners", query: nextQuery },
+      undefined,
+      { shallow: true }
+    );
+  }, [
+    router.isReady,
+    router.pathname,
+    router.replace,
+    router.query.search,
+    router.query.q,
+    router.query.niche,
+    router.query.category,
+    router.query.minFollowers,
+    router.query.maxFollowers,
+    router.query.platform,
+    router.query.engagement,
+  ]);
   
   // Reset niche filter when category changes
   useEffect(() => {
@@ -847,8 +977,8 @@ const AdminPartnersPage: React.FC = () => {
         {/* Filters and Search */}
         <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4 sm:p-6 shadow-sm">
           {/* Search and Quick Filters */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="sm:col-span-2 lg:col-span-2 relative">
+          <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6 items-end">
+            <div className="relative min-w-0 w-full sm:flex-1 sm:min-w-[min(100%,18rem)]">
               <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
               <input
                 value={search}
@@ -862,7 +992,7 @@ const AdminPartnersPage: React.FC = () => {
             </div>
 
             {/* Location Filter */}
-            <div>
+            <div className="min-w-0 flex-1 basis-[10rem] sm:max-w-[14rem]">
               <select
                 value={locationFilter}
                 onChange={(e) => {
@@ -879,7 +1009,7 @@ const AdminPartnersPage: React.FC = () => {
             </div>
 
             {/* Sort */}
-            <div>
+            <div className="min-w-0 flex-1 basis-[10rem] sm:max-w-[14rem]">
               <select
                 value={sortBy}
                 onChange={(e) => {
@@ -1162,7 +1292,7 @@ const AdminPartnersPage: React.FC = () => {
           </div>
         ) : viewMode === "cards" ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            <div className="bus-responsive-card-grid gap-4 sm:gap-5">
               {paginatedPartners.map((partner) => (
                 <div key={partner.id}
                   className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4 sm:p-5 hover:border-emerald-400 dark:hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all group">
@@ -1206,7 +1336,7 @@ const AdminPartnersPage: React.FC = () => {
                     const hasEngagement = engagementRate !== null;
                     
                     return (
-                      <div className={`grid gap-2 mb-4 ${hasEngagement ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                      <div className="bus-responsive-stat-grid gap-2 mb-4">
                     <div className="rounded-xl bg-slate-50 dark:bg-white/3 border border-slate-100 dark:border-white/5 p-2 text-center">
                       <p className="text-sm font-bold text-slate-900 dark:text-white">
                         {fmtFollowers(

@@ -196,7 +196,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* ── Stats grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bus-responsive-stat-grid gap-4">
           <StatCard label="Total Campaigns"  value={stats.totalCampaigns}                                              sub={`${stats.activeCampaigns} active`} icon={FaBullhorn}      color="blue"   />
           <StatCard label="Campaign Budget"  value={formatFromUSD(stats.totalBudget || 0)}                            sub="Allocated"                         icon={FaMoneyBillWave} color="green"  />
           <StatCard label="Active Creators"  value={stats.activeInfluencers || stats.activeAffiliates || 0}           sub="Working with you"                  icon={FaUserFriends}   color="purple" />
@@ -212,7 +212,7 @@ const AdminDashboard: React.FC = () => {
               <FaExclamationTriangle className="h-4 w-4 text-orange-500" />
               <h2 className="text-sm font-bold text-slate-900 dark:text-white">Campaign Expiry Alerts</h2>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="bus-responsive-two-col gap-4">
               {endedCampaigns.length > 0 && (
                 <AlertBlock title={`${endedCampaigns.length} Ended`} hint="Past end date — review or archive" campaigns={endedCampaigns} color="red" basePath="/admin/campaigns" daysLabel={(c) => `${Math.abs(getDaysRemaining(c.endDate))}d ago`} />
               )}
@@ -224,7 +224,7 @@ const AdminDashboard: React.FC = () => {
         )}
 
         {/* ── Budget + performance ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bus-responsive-two-col gap-6">
 
           {/* Budget donut */}
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
@@ -347,7 +347,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* ── Top Creators + Recent Activity ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bus-responsive-two-col gap-6">
 
           {/* Top Creators */}
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
@@ -427,7 +427,7 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* ── Quick actions ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bus-responsive-tile-grid gap-4">
           {[
             { href: "/admin/brands",           icon: FaBuilding, label: "Manage Brands", color: "emerald", hint: "Multi-brand workspace" },
             { href: "/admin/campaigns/create", icon: FaBullhorn, label: "New Campaign",  color: "blue",    hint: "Launch in minutes"    },

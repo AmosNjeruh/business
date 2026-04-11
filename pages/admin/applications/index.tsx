@@ -9,6 +9,10 @@ import toast from "react-hot-toast";
 import AdminLayout from "@/components/admin/Layout";
 import { getApplications, getCampaigns, updateApplicationStatus, getPartner } from "@/services/vendor";
 import {
+  BUSINESS_COPILOT_FILTER_EVENT,
+  type CopilotApplicationsFilterDetail,
+} from "@/lib/businessAssistantNavigate";
+import {
   FaFileAlt, FaCheckCircle, FaTimesCircle, FaSpinner, FaSearch,
   FaUsers, FaChartLine, FaSort, FaSortUp, FaSortDown, FaEye, FaInstagram, FaTwitter, FaFacebookF, FaLinkedinIn, FaYoutube, FaTiktok, FaGlobe
 } from "react-icons/fa";
@@ -86,6 +90,91 @@ const AdminApplicationsPage: React.FC = () => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
     return () => clearTimeout(t);
   }, [search]);
+
+  /** AI copilot: apply list filters when the navigate tool fires. */
+  useEffect(() => {
+    const onCopilot = (ev: Event) => {
+      const e = ev as CustomEvent<CopilotApplicationsFilterDetail>;
+      if (e.detail?.page !== "applications") return;
+      if (e.detail.search) {
+        const t = e.detail.search.trim();
+        setSearch(t);
+        setDebouncedSearch(t);
+      }
+      if (e.detail.campaignId) {
+        setFilterCampaign(e.detail.campaignId);
+      }
+      if (e.detail.status) {
+        const raw = e.detail.status.trim();
+        const u = raw.toUpperCase();
+        if (u === "PENDING" || u === "APPROVED" || u === "REJECTED") {
+          setFilterStatus(u);
+        } else if (raw.toLowerCase() === "all") {
+          setFilterStatus("all");
+        }
+      }
+      setPagination((p) => ({ ...p, page: 1 }));
+    };
+    window.addEventListener(
+      BUSINESS_COPILOT_FILTER_EVENT,
+      onCopilot as EventListener
+    );
+    return () =>
+      window.removeEventListener(
+        BUSINESS_COPILOT_FILTER_EVENT,
+        onCopilot as EventListener
+      );
+  }, []);
+
+  /** Deep links & copilot: ?search= & ?q= & ?campaignId= & ?status= then strip from URL. */
+  useEffect(() => {
+    if (!router.isReady || router.pathname !== "/admin/applications") return;
+    const q = router.query;
+    const pick = (v: string | string[] | undefined): string => {
+      if (typeof v === "string") return v.trim();
+      if (Array.isArray(v) && v[0]) return String(v[0]).trim();
+      return "";
+    };
+    const searchVal = pick(q.search) || pick(q.q);
+    const campaignVal = pick(q.campaignId);
+    const statusVal = pick(q.status);
+    if (!searchVal && !campaignVal && !statusVal) return;
+
+    if (searchVal) {
+      setSearch(searchVal);
+      setDebouncedSearch(searchVal);
+    }
+    if (campaignVal) setFilterCampaign(campaignVal);
+    if (statusVal) {
+      const u = statusVal.toUpperCase();
+      if (u === "PENDING" || u === "APPROVED" || u === "REJECTED") {
+        setFilterStatus(u);
+      } else if (statusVal.toLowerCase() === "all") {
+        setFilterStatus("all");
+      }
+    }
+    setPagination((p) => ({ ...p, page: 1 }));
+
+    const nextQuery = { ...q };
+    delete nextQuery.search;
+    delete nextQuery.q;
+    delete nextQuery.campaignId;
+    delete nextQuery.status;
+
+    void router.replace(
+      { pathname: "/admin/applications", query: nextQuery },
+      undefined,
+      { shallow: true }
+    );
+  }, [
+    router.isReady,
+    router.pathname,
+    router.replace,
+    router.query.search,
+    router.query.q,
+    router.query.campaignId,
+    router.query.status,
+  ]);
 
   useEffect(() => {
     getCampaigns({ limit: 100 })
@@ -332,7 +421,7 @@ const AdminApplicationsPage: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bus-responsive-stat-grid gap-4">
           {[
             { label: "Total", val: totalApplications, light: "border-blue-200 bg-blue-50 hover:bg-blue-100", dark: "dark:border-blue-500/20 dark:bg-blue-500/5 dark:hover:bg-blue-500/10", textLight: "text-blue-600", textDark: "dark:text-blue-400", clickable: false },
             { label: "Pending", val: pending.length, light: "border-yellow-200 bg-yellow-50 hover:bg-yellow-100", dark: "dark:border-yellow-500/20 dark:bg-yellow-500/5 dark:hover:bg-yellow-500/10", textLight: "text-yellow-600", textDark: "dark:text-yellow-400", clickable: true },
@@ -578,7 +667,7 @@ const AdminApplicationsPage: React.FC = () => {
                           <tr className="bg-slate-50 dark:bg-white/5">
                             <td colSpan={7} className="px-4 py-4">
                               <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-white/10 p-4">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bus-responsive-two-col gap-4">
                                   <div>
                                     <h4 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">Social Accounts</h4>
                                     {socialAccounts.length > 0 ? (
@@ -648,7 +737,7 @@ const AdminApplicationsPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bus-responsive-card-grid gap-4">
             {sortedApplications.map((app) => {
               const isPending = app.status === "PENDING";
               const isSelected = selectedApplications.has(app.id);

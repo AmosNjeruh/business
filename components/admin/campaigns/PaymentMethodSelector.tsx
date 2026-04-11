@@ -56,7 +56,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         Choose your preferred payment method to complete the campaign creation
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bus-responsive-two-col gap-4">
         {/* Stripe Option */}
         <button
           type="button"
@@ -134,7 +134,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
           <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-3">
             Select Currency
           </label>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="bus-responsive-stat-grid gap-3">
             {(['USD', 'KES', 'NGN'] as const).map((currency) => (
               <button
                 key={currency}

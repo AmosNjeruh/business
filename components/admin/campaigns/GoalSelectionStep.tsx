@@ -73,7 +73,7 @@ const GoalSelectionStep: React.FC<GoalSelectionStepProps> = ({ onSelectGoal }) =
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+      <div className="bus-responsive-two-col gap-4 sm:gap-6">
         {goals.map((goal) => (
           <button
             key={goal.id}

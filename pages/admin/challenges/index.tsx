@@ -288,7 +288,7 @@ const VendorChallengesPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6 lg:p-8">
 
         {/* ── Page header ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-200 dark:shadow-orange-900/30">
@@ -313,7 +313,7 @@ const VendorChallengesPage: React.FC = () => {
         </div>
 
         {/* ── Stats row ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="bus-responsive-stat-grid gap-4 mb-8">
           {[
             {
               label: 'Total Challenges',
@@ -355,7 +355,7 @@ const VendorChallengesPage: React.FC = () => {
         </div>
 
         {/* ── Filter bar ── */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 mb-6">
           {/* Search */}
           <div className="relative flex-1 max-w-sm">
             <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
@@ -369,7 +369,7 @@ const VendorChallengesPage: React.FC = () => {
           </div>
 
           {/* Status tabs */}
-          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-1 overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-1">
             {TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -394,7 +394,7 @@ const VendorChallengesPage: React.FC = () => {
         ) : challenges.length === 0 ? (
           <EmptyState onCreateClick={() => router.push('/admin/challenges/create')} />
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="bus-responsive-card-grid gap-5">
             {challenges.map((c) => (
               <ChallengeCard key={c.id} challenge={c} />
             ))}

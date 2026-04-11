@@ -609,7 +609,7 @@ const WorkValidationDetailPage: React.FC = () => {
 
               {/* Contact Info */}
               {(partnerSettings?.contactPhone || partnerSettings?.whatsapp || partnerSettings?.address) && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:border-l sm:border-gray-200 sm:dark:border-gray-700 sm:pl-6">
+                <div className="bus-responsive-tile-grid gap-3 sm:border-l sm:border-gray-200 sm:dark:border-gray-700 sm:pl-6">
                   {partnerSettings?.contactPhone && (
                     <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                       <FaPhone className="mr-3 text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -633,7 +633,7 @@ const WorkValidationDetailPage: React.FC = () => {
                     </div>
                   )}
                   {partnerSettings?.address && (
-                    <div className="flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg sm:col-span-3 sm:col-span-1">
+                    <div className="col-span-full flex items-center p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
                       <FaMapMarkerAlt className="mr-3 text-red-600 dark:text-red-400 flex-shrink-0" />
                       <div className="min-w-0">
                         <p className="text-xs text-gray-500 dark:text-gray-400">Address</p>
@@ -651,7 +651,7 @@ const WorkValidationDetailPage: React.FC = () => {
           {/* Campaign Info */}
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4 sm:p-6 border border-green-200 dark:border-green-800 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 flex-1">
+              <div className="bus-responsive-two-col gap-4 flex-1">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-green-100 dark:bg-green-900 p-2 flex-shrink-0">
                   <FaBriefcase className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -705,7 +705,7 @@ const WorkValidationDetailPage: React.FC = () => {
                     Export
                   </button>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-4">
+                <div className="bus-responsive-dense-grid gap-3 sm:gap-4">
                   <div className="p-3 sm:p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
                         <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
                           Posts
@@ -779,7 +779,7 @@ const WorkValidationDetailPage: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bus-responsive-two-col gap-4">
                 {application.posts.map((post: any, index: number) => {
                         const formatNumber = (num: number) => {
                           if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`
@@ -856,7 +856,7 @@ const WorkValidationDetailPage: React.FC = () => {
                         </div>
                       )}
 
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                      <div className="bus-responsive-tile-grid gap-3 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
                               {post.likes > 0 && (
                                 <div>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">Likes</p>
@@ -918,7 +918,7 @@ const WorkValidationDetailPage: React.FC = () => {
           )}
 
           {/* Partner Details */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          <div className="bus-responsive-two-col gap-4 sm:gap-6">
             {/* About Creator */}
             {partnerSettings?.description && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -957,7 +957,7 @@ const WorkValidationDetailPage: React.FC = () => {
             partnerSettings.socialMediaAccounts.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Social Media Reach</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bus-responsive-two-col gap-4">
                   {partnerSettings.socialMediaAccounts.map((account: any, index: number) => {
                     const profileUrl = buildSocialProfileUrl(account.platform, account.username, account.url)
 
@@ -996,7 +996,7 @@ const WorkValidationDetailPage: React.FC = () => {
                             </a>
                           )}
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="bus-responsive-two-col gap-3">
                           <div>
                             <p className="text-xs text-gray-500 dark:text-gray-400">Followers</p>
                             <p className="text-lg font-bold text-gray-900 dark:text-white">
@@ -1086,7 +1086,7 @@ const WorkValidationDetailPage: React.FC = () => {
                         their work to set earnings.
                           </p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="bus-responsive-two-col gap-3">
                           <button
                             onClick={handleApproveWorkClick}
                             disabled={isApprovingWork || isRejectingWork}
@@ -1392,7 +1392,7 @@ const WorkValidationDetailPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="bus-responsive-stat-grid gap-4 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 {selectedPost.likes > 0 && (
                   <div className="text-center">
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Likes</p>

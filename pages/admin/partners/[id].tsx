@@ -488,7 +488,7 @@ export default function PartnerProfilePage() {
           </div>
 
           {/* Key Performance Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="bus-responsive-stat-grid gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
               <div className="flex items-center">
                 <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-3 mr-4">
@@ -532,7 +532,7 @@ export default function PartnerProfilePage() {
           <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Why Work With This Creator?</h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="bus-responsive-card-grid gap-4">
               <div className="flex items-start gap-3">
                 <div className="rounded-full bg-green-100 dark:bg-green-900 p-2 flex-shrink-0">
                   <FaCheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -639,7 +639,7 @@ export default function PartnerProfilePage() {
           </div>
 
           {/* Audience & Reach */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="bus-responsive-card-grid gap-6">
             {/* Audience Demographics */}
             <div className="lg:col-span-2">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
@@ -718,7 +718,7 @@ export default function PartnerProfilePage() {
                   {partner.demographicInfo && (
                     <div>
                       <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-3">Audience Demographics</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="bus-responsive-card-grid gap-4">
                         {partner.demographicInfo.age && (
                           <div className="flex items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                             <FaCalendarAlt className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-3 flex-shrink-0" />
@@ -756,7 +756,7 @@ export default function PartnerProfilePage() {
                   {partner.socialMediaAccounts && Array.isArray(partner.socialMediaAccounts) && partner.socialMediaAccounts.length > 0 && (
                     <div>
                       <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">Social Media Presence</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="bus-responsive-card-grid gap-4">
                         {partner.socialMediaAccounts.map((account: any, index: number) => {
                           const profileUrl = buildSocialProfileUrl(account.platform, account.username, account.url);
 
@@ -789,7 +789,7 @@ export default function PartnerProfilePage() {
                                 )}
                               </div>
 
-                              <div className="grid grid-cols-2 gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                              <div className="bus-responsive-two-col gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
                                 <div>
                                   <p className="text-xs text-gray-500 dark:text-gray-400">Followers</p>
                                   <p className="text-sm font-bold text-gray-900 dark:text-white">{formatFollowers(account.followers || 0)}</p>
@@ -910,7 +910,7 @@ export default function PartnerProfilePage() {
           {Array.isArray(partner.recentCampaigns) && partner.recentCampaigns.length > 0 && (
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Campaign Performance</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bus-responsive-two-col gap-4">
                 {partner.recentCampaigns.map((c: any) => (
                   <div
                     key={c.id}
@@ -925,7 +925,7 @@ export default function PartnerProfilePage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="bus-responsive-two-col gap-3">
                       <div className="text-center">
                         <p className="text-lg font-bold text-blue-600 dark:text-blue-400">{c.conversions || 0}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Conversions</p>

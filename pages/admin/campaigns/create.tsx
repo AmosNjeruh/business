@@ -966,7 +966,7 @@ const CreateCampaignPage: React.FC = () => {
             />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bus-responsive-two-col gap-4 sm:gap-6">
                 <div className="space-y-4 sm:space-y-6">
                   <CampaignDetailsForm
                     formData={{
@@ -1072,7 +1072,7 @@ const CreateCampaignPage: React.FC = () => {
                         </button>
                       </div>
                       {showIndividualPlatforms && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                        <div className="bus-responsive-two-col gap-2 mt-2">
                           {CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((platform) => {
                             const selected = (formData.socialPlatforms || []).includes(platform.value)
                             return (
@@ -1105,7 +1105,7 @@ const CreateCampaignPage: React.FC = () => {
                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                         Content Direction
                       </label>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="bus-responsive-two-col gap-2">
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, contentStyle: 'CREATOR_CREATIVITY' })}

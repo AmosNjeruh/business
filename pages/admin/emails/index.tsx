@@ -333,7 +333,7 @@ const VendorEmailsPage: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bus-responsive-two-col gap-6">
           {/* Email Composition */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
             <div className="flex items-center mb-6">

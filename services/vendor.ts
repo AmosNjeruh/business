@@ -48,6 +48,38 @@ export const getCampaign = async (id: string) => {
   return response.data.data;
 };
 
+/** Full metrics DTO: totals + byPlatform (posts, views, impressions, reach, likes, comments, shares, engagementRate). */
+export const getCampaignMetricsDto = async (campaignId: string) => {
+  const response = await Api.get<{ data: any }>(`/vendor/campaigns/${campaignId}/metrics`);
+  return response.data.data;
+};
+
+export type MetricsTimeSeriesWindow = '30m' | '1h' | '2h' | '12h' | '24h';
+
+/** Bucketed snapshot deltas from CampaignPostMetricSnapshot (likes, comments, shares, views, impressions, reach per bucket). */
+export const getCampaignMetricsTimeSeries = async (
+  campaignId: string,
+  window: MetricsTimeSeriesWindow = '24h',
+  bucket?: number
+) => {
+  const response = await Api.get<{ data: any }>(`/vendor/campaigns/${campaignId}/metrics/timeseries`, {
+    params: { window, ...(bucket != null ? { bucket } : {}) },
+  });
+  return response.data.data as {
+    window: MetricsTimeSeriesWindow;
+    bucketMinutes: number;
+    points: Array<{
+     timestamp: string;
+      likes: number;
+      comments: number;
+      shares: number;
+      views: number;
+      impressions: number;
+      reach: number;
+    }>;
+  };
+};
+
 export const createCampaign = async (data: CreateCampaignData) => {
   const response = await Api.post<{ data: any }>('/vendor/campaigns', data);
   return response.data.data;
@@ -943,6 +975,7 @@ export const getTimeSeriesAnalytics = async (params: {
   startDate?: string;
   endDate?: string;
   groupBy?: 'day' | 'week' | 'month';
+  campaignId?: string;
 }) => {
   const response = await Api.get<{ data: any }>('/vendor/analytics/time-series', { params });
   return response.data.data;
@@ -1185,6 +1218,8 @@ export const updateVendorProfile = async (data: any) => {
 export default {
   getCampaigns,
   getCampaign,
+  getCampaignMetricsDto,
+  getCampaignMetricsTimeSeries,
   createCampaign,
   updateCampaign,
   uploadCampaignImage,

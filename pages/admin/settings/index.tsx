@@ -212,7 +212,7 @@ const AdminSettingsPage: React.FC = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your profile, agency, security, and notifications</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className="bus-responsive-tile-grid gap-6">
           {/* Sidebar tabs */}
           <div className="lg:col-span-1">
             <nav className="space-y-1">
@@ -254,7 +254,7 @@ const AdminSettingsPage: React.FC = () => {
                       <p className="text-xs text-slate-500 dark:text-slate-400">Agency Account</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bus-responsive-two-col gap-4">
                     <div>
                       <label className={labelCls}>Full name</label>
                       <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} placeholder="Your name" />
@@ -288,7 +288,7 @@ const AdminSettingsPage: React.FC = () => {
               <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-6 shadow-sm">
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white mb-5">Agency Details</h2>
                 <form onSubmit={handleSaveAgency} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bus-responsive-two-col gap-4">
                     <div>
                       <label className={labelCls}>Agency name</label>
                       <input value={agencyName} onChange={(e) => setAgencyName(e.target.value)} className={inputCls} placeholder="e.g. Northbridge Media" />
@@ -304,7 +304,7 @@ const AdminSettingsPage: React.FC = () => {
                       </select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bus-responsive-two-col gap-4">
                     <div>
                       <label className={labelCls}>Team size</label>
                       <select value={agencySize} onChange={(e) => setAgencySize(e.target.value)}

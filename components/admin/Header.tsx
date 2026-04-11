@@ -25,6 +25,7 @@ import {
   FaWallet,
   FaUsers,
   FaEnvelope,
+  FaRobot,
 } from "react-icons/fa";
 import { getCurrentUser, logout } from "@/services/auth";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -35,11 +36,15 @@ import toast from "react-hot-toast";
 interface HeaderProps {
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (open: boolean) => void;
+  aiAssistantOpen?: boolean;
+  onAiAssistantToggle?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   isMobileMenuOpen,
   setIsMobileMenuOpen,
+  aiAssistantOpen = false,
+  onAiAssistantToggle,
 }) => {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
@@ -307,8 +312,23 @@ const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
 
-        {/* Right – theme toggle + notifications + user */}
+        {/* Right – AI assistant + theme toggle + notifications + user */}
         <div className="flex items-center gap-1 sm:gap-1.5">
+          <button
+            type="button"
+            onClick={() => onAiAssistantToggle?.()}
+            title={aiAssistantOpen ? "Close AI assistant" : "Open AI assistant"}
+            aria-label={aiAssistantOpen ? "Close AI assistant" : "Open AI assistant"}
+            aria-pressed={aiAssistantOpen}
+            className={`relative p-2 rounded-lg transition-colors ${
+              aiAssistantOpen
+                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15"
+                : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-white/5"
+            }`}
+          >
+            <FaRobot className="h-4 w-4" />
+          </button>
+
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
@@ -554,7 +574,7 @@ const Header: React.FC<HeaderProps> = ({
               {/* Quick Links */}
               <div className="px-3 sm:px-4 py-3 border-b border-slate-200 dark:border-white/8">
                 <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Quick Navigation</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="bus-responsive-tile-grid gap-2">
                   {searchQuickLinks.map((link) => {
                     const Icon = link.icon;
                     return (
@@ -601,6 +621,7 @@ const Header: React.FC<HeaderProps> = ({
         </>,
         document.body
       )}
+
     </header>
   );
 };

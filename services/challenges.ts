@@ -257,6 +257,14 @@ export const vendorUpdateChallenge = async (challengeId: string, payload: Partia
   return response.data.data as Challenge;
 };
 
+export const vendorUpdateChallengeStatus = async (
+  challengeId: string,
+  status: 'ACTIVE' | 'PAUSED'
+) => {
+  const response = await Api.put(`/vendor/challenges/${challengeId}/status`, { status });
+  return response.data.data as Challenge;
+};
+
 export const vendorGetLeaderboard = async (challengeId: string, limit = 50) => {
   // Use the live public leaderboard endpoint which has a 2-minute cache
   // with automatic fallback to a direct DB query — same data source as the
@@ -310,6 +318,32 @@ export const getChallengePostMetrics = async (challengeId: string): Promise<Chal
 export const vendorGetChallengeSocialMetrics = async (challengeId: string): Promise<ChallengeMetricsDTO> => {
   const response = await Api.get(`/vendor/challenges/${challengeId}/social-metrics`);
   return response.data.data as ChallengeMetricsDTO;
+};
+
+export type ChallengeMetricsTimeSeriesWindow = '30m' | '1h' | '2h' | '12h' | '24h';
+
+/** ChallengeMetricSnapshot time series (metric value mapped to views/reach per bucket). */
+export const vendorGetChallengeSocialMetricsTimeSeries = async (
+  challengeId: string,
+  window: ChallengeMetricsTimeSeriesWindow = '24h',
+  bucket?: number,
+) => {
+  const response = await Api.get(`/vendor/challenges/${challengeId}/social-metrics/timeseries`, {
+    params: { window, ...(bucket != null ? { bucket } : {}) },
+  });
+  return response.data.data as {
+    window: ChallengeMetricsTimeSeriesWindow;
+    bucketMinutes: number;
+    points: Array<{
+      timestamp: string;
+      likes: number;
+      comments: number;
+      shares: number;
+      views: number;
+      impressions: number;
+      reach: number;
+    }>;
+  };
 };
 
 // ─── FinalBoss (Admin) ────────────────────────────────────────────────────────

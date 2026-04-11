@@ -276,7 +276,7 @@ const FinancePage: React.FC = () => {
   return (
     <AdminLayout>
       <div className="min-h-screen p-2 sm:p-4 lg:p-6">
-        <div className="w-full mx-auto space-y-6 max-w-7xl">
+        <div className="w-full min-w-0 mx-auto space-y-6 max-w-7xl box-border">
           {/* ── Page Header ── */}
           <div className="flex items-center gap-4">
             <Link href="/admin" className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
@@ -301,7 +301,7 @@ const FinancePage: React.FC = () => {
             {/* decorative circles */}
             <div className="absolute -top-10 -right-10 w-52 h-52 rounded-full bg-white/5" />
             <div className="absolute -bottom-8 -left-8 w-40 h-40 rounded-full bg-white/5" />
-            <div className="relative z-10 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8">
+            <div className="relative z-10 bus-responsive-stat-grid gap-4 sm:gap-8">
               {/* Balance */}
               <div className="col-span-2 sm:col-span-1">
                 <p className="text-emerald-200 text-xs font-medium mb-1 uppercase tracking-wide">Wallet Balance</p>
@@ -337,7 +337,7 @@ const FinancePage: React.FC = () => {
           </div>
 
           {/* ── Tabs ── */}
-          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl overflow-x-auto">
+          <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
             {tabs.map((t) => (
               <button
                 key={t.id}
@@ -360,7 +360,7 @@ const FinancePage: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               {/* Quick stats row */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bus-responsive-stat-grid gap-4">
                 {[
                   { label: 'Active Campaigns', value: activeCampaigns, sub: `of ${totalCampaigns} total`, icon: <FaBriefcase className="h-5 w-5" />, color: 'from-blue-500 to-blue-600', bg: 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20', border: 'border-blue-200 dark:border-blue-700' },
                   { label: 'Applications', value: totalApplications, sub: 'total received', icon: <FaUsers className="h-5 w-5" />, color: 'from-purple-500 to-purple-600', bg: 'from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20', border: 'border-purple-200 dark:border-purple-700' },
@@ -381,7 +381,7 @@ const FinancePage: React.FC = () => {
               </div>
 
               {/* Charts row */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bus-responsive-two-col gap-6">
                 {/* Donut chart */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm">
                   <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Budget Utilisation</h2>
@@ -505,7 +505,7 @@ const FinancePage: React.FC = () => {
               </div>
 
               {/* Top earning campaigns & creators */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bus-responsive-two-col gap-6">
                 {/* Top creators by earnings */}
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-white/10 shadow-sm">
                   <div className="flex items-center justify-between mb-5">
@@ -826,7 +826,7 @@ const FinancePage: React.FC = () => {
               TAB: TOP UP
           ══════════════════════════════════════════════════════════════════ */}
           {activeTab === 'topup' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bus-responsive-two-col gap-6">
               {/* Top-up form */}
               <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm p-6">
                 <div className="flex items-center gap-3 mb-6">
@@ -882,7 +882,7 @@ const FinancePage: React.FC = () => {
                     <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
                       Payment Method
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="bus-responsive-two-col gap-3">
                       {[
                         { id: 'stripe' as const, name: 'Stripe', sub: 'USD only', icon: '💳' },
                         { id: 'paystack' as const, name: 'Paystack', sub: selectedCurrency || (userCurrency === 'KES' ? 'KES' : userCurrency === 'NGN' ? 'NGN' : 'USD'), icon: '🌍' },

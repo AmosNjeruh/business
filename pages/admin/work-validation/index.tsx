@@ -8,6 +8,10 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import AdminLayout from '@/components/admin/Layout'
 import { getCampaigns, getApplications, approveWork, bulkApproveWork } from '@/services/vendor'
+import {
+  BUSINESS_COPILOT_FILTER_EVENT,
+  type CopilotWorkValidationFilterDetail,
+} from '@/lib/businessAssistantNavigate'
 import Image from 'next/image'
 import SocialEmbed from '@/components/admin/SocialEmbeds'
 import {
@@ -179,6 +183,88 @@ const WorkValidationPage: React.FC = () => {
       }
     }
   }, [searchTerm])
+
+  /** AI copilot: apply queue filters when the navigate tool fires. */
+  useEffect(() => {
+    const onCopilot = (ev: Event) => {
+      const e = ev as CustomEvent<CopilotWorkValidationFilterDetail>
+      if (e.detail?.page !== 'workValidation') return
+      if (e.detail.search) {
+        const t = e.detail.search.trim()
+        setSearchTerm(t)
+        setDebouncedSearchTerm(t)
+      }
+      if (e.detail.campaignId) {
+        setFilterCampaign(e.detail.campaignId)
+      }
+      if (e.detail.workStatus) {
+        const w = e.detail.workStatus.trim().toLowerCase()
+        if (w === 'pending' || w === 'approved' || w === 'rejected' || w === 'all') {
+          setWorkStatusFilter(w as 'all' | 'pending' | 'approved' | 'rejected')
+        }
+      }
+      setPage(1)
+    }
+    window.addEventListener(
+      BUSINESS_COPILOT_FILTER_EVENT,
+      onCopilot as EventListener
+    )
+    return () =>
+      window.removeEventListener(
+        BUSINESS_COPILOT_FILTER_EVENT,
+        onCopilot as EventListener
+      )
+  }, [])
+
+  /** Deep links & copilot: ?search= & ?q= & ?campaignId= & ?workStatus= then strip from URL. */
+  useEffect(() => {
+    if (!router.isReady || router.pathname !== '/admin/work-validation') return
+    const q = router.query
+    const pick = (v: string | string[] | undefined): string => {
+      if (typeof v === 'string') return v.trim()
+      if (Array.isArray(v) && v[0]) return String(v[0]).trim()
+      return ''
+    }
+    const searchVal = pick(q.search) || pick(q.q)
+    const campaignVal = pick(q.campaignId)
+    const workStatusVal = pick(q.workStatus) || pick(q.work_status)
+    if (!searchVal && !campaignVal && !workStatusVal) return
+
+    if (searchVal) {
+      setSearchTerm(searchVal)
+      setDebouncedSearchTerm(searchVal)
+    }
+    if (campaignVal) setFilterCampaign(campaignVal)
+    if (workStatusVal) {
+      const w = workStatusVal.trim().toLowerCase()
+      if (w === 'pending' || w === 'approved' || w === 'rejected' || w === 'all') {
+        setWorkStatusFilter(w as 'all' | 'pending' | 'approved' | 'rejected')
+      }
+    }
+    setPage(1)
+
+    const nextQuery = { ...q }
+    delete nextQuery.search
+    delete nextQuery.q
+    delete nextQuery.campaignId
+    delete nextQuery.workStatus
+    delete nextQuery.work_status
+
+    void router.replace(
+      { pathname: '/admin/work-validation', query: nextQuery },
+      undefined,
+      { shallow: true }
+    )
+  }, [
+    router.isReady,
+    router.pathname,
+    router.replace,
+    router.query.search,
+    router.query.q,
+    router.query.campaignId,
+    router.query.workStatus,
+    router.query.work_status,
+  ])
 
   useEffect(() => {
     fetchApplications(1, limit)
@@ -398,7 +484,7 @@ const WorkValidationPage: React.FC = () => {
           </div>
 
           {/* Stats Dashboard */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+          <div className="bus-responsive-dense-grid gap-3 sm:gap-4">
             <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
@@ -922,7 +1008,7 @@ const WorkValidationPage: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="bus-responsive-card-grid gap-4">
                   {sortedApplications.map((app) => {
                     const totalPosts = app.posts?.length || 0
                     const validatedCount =
@@ -1132,7 +1218,7 @@ const WorkValidationPage: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Submitted Posts</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bus-responsive-two-col gap-3">
                     {quickPreviewApp.posts?.slice(0, 6).map((post: any) => (
                       <div key={post.id} className="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                         <div className="flex items-center justify-between mb-2">

@@ -134,7 +134,7 @@ const AdminCampaignsPage: React.FC = () => {
               {brandName ? `Campaigns running for ${brandName}` : "Create and manage your marketing campaigns"}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1 bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-white/8 rounded-xl p-1">
               <button
                 onClick={() => setViewMode("table")}
@@ -168,7 +168,7 @@ const AdminCampaignsPage: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bus-responsive-stat-grid gap-3 sm:gap-4">
           {[
             { label: "Total Campaigns", val: stats.total,                        sub: `${stats.active} active`,  icon: FaBriefcase,         light: "border-blue-200   bg-blue-50   text-blue-600",   dark: "dark:border-blue-500/20   dark:bg-blue-500/5   dark:text-blue-400"   },
             { label: "Total Budget",    val: formatFromUSD(stats.totalBudgetUSD), sub: "Allocated",               icon: FaMoneyBillWave,     light: "border-green-200  bg-green-50  text-green-600",  dark: "dark:border-green-500/20  dark:bg-green-500/5  dark:text-green-400"  },
@@ -215,7 +215,7 @@ const AdminCampaignsPage: React.FC = () => {
 
         {/* Search + Filter */}
         <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3">
             <div className="flex-1 relative">
               <FaSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-slate-500" />
               <input
@@ -226,7 +226,7 @@ const AdminCampaignsPage: React.FC = () => {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/15 transition-all"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 value={filterStatus}
                 onChange={(e) => {
@@ -329,7 +329,7 @@ const AdminCampaignsPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="bus-responsive-card-grid gap-5">
             {campaigns.map((campaign) => {
               const expired = campaign.endDate && daysLeft(campaign.endDate) < 0;
               const urgent = !expired && campaign.endDate && daysLeft(campaign.endDate) <= 7;

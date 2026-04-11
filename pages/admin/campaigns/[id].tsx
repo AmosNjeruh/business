@@ -371,7 +371,12 @@ export default function CampaignDetailPage() {
               <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{campaign.title}</h1>
               <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">{campaign.description}</p>
             </div>
-            <div className="flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-shrink-0 flex-wrap">
+              <Link href={`/admin/campaigns/${id}/analytics`}>
+                <button className="px-4 py-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 text-xs text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20 transition-all font-semibold">
+                  <FaChartLine className="h-3 w-3 inline mr-1.5" />Advanced analytics
+                </button>
+              </Link>
               <Link href={`/admin/campaigns/${id}/edit`}>
                 <button className="px-4 py-2 rounded-xl border border-slate-200 dark:border-white/15 bg-white dark:bg-white/5 text-xs text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/10 transition-all">
                   <FaEdit className="h-3 w-3 inline mr-1.5" />Edit Campaign
@@ -389,7 +394,7 @@ export default function CampaignDetailPage() {
         )}
 
         {/* KPI cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bus-responsive-stat-grid gap-4">
           <KPICard icon={FaMoneyBillWave}  label="Total Budget"   val={formatFromUSD(campaign.budget || 0)}                                       color="green"   sub="Allocated" />
           <KPICard icon={FaMoneyBillWave}  label="Remaining"      val={formatFromUSD(campaign.remainingBudget ?? campaign.budget ?? 0)}            color="emerald" sub={`${spentPct}% spent`} />
           <KPICard icon={FaUsers}          label="Applications"   val={applications.length}                                                        color="blue"    sub={`${approved.length} approved`} />
@@ -464,7 +469,7 @@ export default function CampaignDetailPage() {
         </div>
 
         {/* Campaign meta grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bus-responsive-card-grid gap-4">
           {[
             { label: "Objective",          val: campaign.objective?.replace(/_/g, " ") },
             { label: "Start date",         val: campaign.startDate ? fmtDate(campaign.startDate) : "—" },
@@ -545,7 +550,7 @@ export default function CampaignDetailPage() {
               )}
 
               {/* Application status mini-grid */}
-              <div className="grid grid-cols-3 gap-4">
+              <div className="bus-responsive-stat-grid gap-4">
                 {[
                   { label: "Pending",  val: pending.length,  color: "yellow" },
                   { label: "Approved", val: approved.length, color: "green" },
@@ -576,7 +581,7 @@ export default function CampaignDetailPage() {
                       Full analytics <FaChevronRight className="h-2.5 w-2.5" />
                     </button>
                   </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="bus-responsive-two-col gap-4">
                     {/* Engagement bar */}
                     {engagementBreakdownData.length > 0 && (
                       <div>
@@ -659,7 +664,7 @@ export default function CampaignDetailPage() {
               ) : (
                 <>
                   {/* Extended KPI cards */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                  <div className="bus-responsive-dense-grid gap-3">
                     {[
                       { label: "Total Posts",  val: fmtNum(metrics?.totalPosts ?? 0),       icon: FaFileAlt,       color: "indigo" },
                       { label: "Validated",    val: fmtNum(validatedPosts.length),           icon: FaCheckCircle,   color: "emerald" },
@@ -697,7 +702,7 @@ export default function CampaignDetailPage() {
 
                   {/* Platform charts row */}
                   {platformStats.length > 0 && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="bus-responsive-two-col gap-5">
                       {/* Reach by platform – donut */}
                       {reachByPlatformPieData.length > 0 && (
                         <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5">
@@ -842,7 +847,7 @@ export default function CampaignDetailPage() {
                         <FaFire className="h-4 w-4 text-orange-400" />
                         <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Campaign performance</h3>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      <div className="bus-responsive-card-grid gap-3">
                         {Object.entries(campaignAnalytics)
                           .filter(([, v]) => typeof v === "number")
                           .slice(0, 8)

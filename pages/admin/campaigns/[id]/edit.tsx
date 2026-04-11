@@ -298,7 +298,7 @@ export default function EditCampaignPage() {
             {step === 1 && (
               <div className="space-y-4">
                 <StepHeading icon={FaBullseye} title="Choose your campaign goal" hint="What outcome does this campaign need to achieve?" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bus-responsive-two-col gap-3">
                   {OBJECTIVES.map(({ value, label, desc, emoji }) => (
                     <button
                       key={value}
@@ -374,7 +374,7 @@ export default function EditCampaignPage() {
                   <label className="block text-xs font-medium text-slate-700 dark:text-slate-300">
                     Content Direction
                   </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="bus-responsive-two-col gap-2">
                     <button
                       type="button"
                       onClick={() => set("contentStyle", "CREATOR_CREATIVITY")}
@@ -429,7 +429,7 @@ export default function EditCampaignPage() {
                     </button>
                   </div>
                   {showIndividualPlatforms && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="bus-responsive-two-col gap-2">
                       {CAMPAIGN_SOCIAL_PLATFORM_OPTIONS.map((platform) => {
                         const selected = form.socialPlatforms.includes(platform.value);
                         return (
@@ -532,7 +532,7 @@ export default function EditCampaignPage() {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-2">Payment structure *</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="bus-responsive-two-col gap-2">
                     {PAY_STRUCTURES.map(({ value, label, desc }) => (
                       <button key={value} type="button" onClick={() => set("paymentStructure", value)}
                         className={`rounded-xl border p-3 text-left ${form.paymentStructure === value ? "border-emerald-400 dark:border-emerald-400/50 bg-emerald-50 dark:bg-emerald-400/10" : "border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/3 hover:bg-slate-100 dark:hover:bg-white/6"}`}>
@@ -561,7 +561,7 @@ export default function EditCampaignPage() {
             {step === 4 && (
               <div className="space-y-4">
                 <StepHeading icon={FaCalendarAlt} title="Campaign schedule" hint="Set when this campaign starts and ends" />
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="bus-responsive-two-col gap-4">
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Start date *</label>
                     <input type="date" value={form.startDate}

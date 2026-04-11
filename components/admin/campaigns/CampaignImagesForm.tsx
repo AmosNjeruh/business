@@ -138,7 +138,7 @@ const CampaignImagesForm: React.FC<CampaignImagesFormProps> = ({
 
             <div className="border-2 border-dashed border-slate-300 dark:border-white/10 rounded-xl p-4 sm:p-6">
               {promotionalImages.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+                <div className="bus-responsive-tile-grid gap-3 sm:gap-4 mb-4">
                   {promotionalImages.map((img, index) => (
                     <div key={index} className="relative">
                       <img

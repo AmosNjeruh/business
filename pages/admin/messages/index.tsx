@@ -273,14 +273,14 @@ const AdminMessagesPage: React.FC = () => {
     <AdminLayout>
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Messages</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {unreadCount > 0 ? `${unreadCount} unread · ` : ""}{threads.length} conversations
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button onClick={() => setShowBroadcastModal(true)}
               className="flex items-center gap-2 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-300 font-semibold text-sm px-4 py-2.5 rounded-xl hover:bg-slate-200 dark:hover:bg-white/10 transition-all">
               <FaBullhorn className="h-3.5 w-3.5" /> Broadcast
@@ -292,9 +292,14 @@ const AdminMessagesPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ minHeight: 520 }}>
+        <div
+          className="grid min-w-0 w-full grid-cols-1 gap-4 @lg/bus-main:grid-cols-3"
+          style={{ minHeight: 520 }}
+        >
           {/* Thread list */}
-          <div className={`lg:col-span-1 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 overflow-hidden flex flex-col ${activeThread ? "hidden lg:flex" : "flex"}`}>
+          <div
+            className={`@lg/bus-main:col-span-1 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 overflow-hidden flex flex-col ${activeThread ? "hidden @lg/bus-main:flex" : "flex"}`}
+          >
             {/* Search */}
             <div className="p-3 border-b border-slate-200 dark:border-white/8">
               <div className="relative">
@@ -355,7 +360,9 @@ const AdminMessagesPage: React.FC = () => {
           </div>
 
           {/* Thread detail */}
-          <div className={`lg:col-span-2 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 overflow-hidden flex flex-col ${!activeThread ? "hidden lg:flex" : "flex"}`}>
+          <div
+            className={`@lg/bus-main:col-span-2 rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 overflow-hidden flex flex-col ${!activeThread ? "hidden @lg/bus-main:flex" : "flex"}`}
+          >
             {!activeThread ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
                 <FaEnvelope className="h-14 w-14 text-slate-200 dark:text-slate-700 mb-4" />
@@ -366,7 +373,7 @@ const AdminMessagesPage: React.FC = () => {
               <>
                 {/* Thread header */}
                 <div className="px-5 py-4 border-b border-slate-200 dark:border-white/8 flex items-center gap-3">
-                  <button onClick={() => setActiveThread(null)} className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
+                  <button onClick={() => setActiveThread(null)} className="@lg/bus-main:hidden p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-colors">
                     <FaChevronLeft className="h-3.5 w-3.5" />
                   </button>
                   <div className="h-9 w-9 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 flex items-center justify-center text-slate-950 text-xs font-bold flex-shrink-0">

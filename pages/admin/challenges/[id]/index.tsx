@@ -10,7 +10,9 @@ import {
   vendorGetLeaderboard,
   vendorGetSubmissions,
   vendorGetChallengeSocialMetrics,
+  adminUpdateChallengeStatus,
   type Challenge,
+  type ChallengeStatus,
   type LeaderboardEntry,
   type ChallengeSubmission,
   type SubmissionStatus,
@@ -345,6 +347,7 @@ const VendorChallengeDetailPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true)
   const [refreshingLb, setRefreshingLb] = useState(false)
+  const [updatingStatus, setUpdatingStatus] = useState(false)
   const [activeTab, setActiveTab] = useState<string>('overview')
   const [timer, setTimer] = useState('')
 
@@ -452,6 +455,20 @@ const VendorChallengeDetailPage: React.FC = () => {
     }
   }, [id, fetchLeaderboard])
 
+  const handleStatusChange = useCallback(async (nextStatus: ChallengeStatus, note?: string) => {
+    if (!id || updatingStatus) return
+    try {
+      setUpdatingStatus(true)
+      await adminUpdateChallengeStatus(id as string, nextStatus, note)
+      toast.success(`Challenge ${nextStatus === 'PAUSED' ? 'paused' : nextStatus === 'ACTIVE' ? 'resumed' : 'stopped'} successfully`)
+      await fetchData()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || 'Failed to update challenge status')
+    } finally {
+      setUpdatingStatus(false)
+    }
+  }, [id, updatingStatus, fetchData])
+
   const refreshLeaderboard = async () => {
     if (!id) return
     setRefreshingLb(true)
@@ -539,7 +556,7 @@ const VendorChallengeDetailPage: React.FC = () => {
   const goalReached = analytics?.goalReachedCount ?? 0
   const completionRate = participants > 0 ? Math.round((goalReached / participants) * 100) : 0
   const topPrize = challenge.prizes?.[0]
-  const isEditable = ['DRAFT', 'PENDING_REVIEW'].includes(challenge.status)
+  const isEditable = ['DRAFT', 'PENDING_REVIEW', 'REJECTED', 'SCHEDULED'].includes(challenge.status)
 
   const tabs = [
     { id: 'overview',     label: 'Overview',     icon: <FaChartBar size={12} /> },
@@ -588,12 +605,36 @@ const VendorChallengeDetailPage: React.FC = () => {
                   <FaClock size={9} /> {timer}
                 </span>
               )}
-              {isEditable && (
-                <Link href={`/admin/challenges/${challenge.id}/edit`}>
-                  <button className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                    <FaEdit size={13} />
-                  </button>
-                </Link>
+              <Link href={`/admin/challenges/${challenge.id}/analytics`}>
+                <button
+                  type="button"
+                  title="Advanced analytics"
+                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-200/80 dark:hover:bg-indigo-900/60 transition-colors"
+                >
+                  <FaChartBar size={12} className="inline mr-1" />
+                  Analytics
+                </button>
+              </Link>
+              <Link href={`/admin/challenges/${challenge.id}/edit`}>
+                <button
+                  title={isEditable ? 'Edit challenge' : 'View edit page (some fields/actions may be locked for this status)'}
+                  className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <FaEdit size={13} />
+                </button>
+              </Link>
+              {(challenge.status === 'ACTIVE' || challenge.status === 'PAUSED') && (
+                <button
+                  onClick={() => handleStatusChange(challenge.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE')}
+                  disabled={updatingStatus}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border disabled:opacity-50 ${
+                    challenge.status === 'ACTIVE'
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800'
+                      : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800'
+                  }`}
+                >
+                  {challenge.status === 'ACTIVE' ? 'Pause' : 'Resume'}
+                </button>
               )}
             </div>
           </div>
@@ -627,7 +668,7 @@ const VendorChallengeDetailPage: React.FC = () => {
           )}
 
           {/* KPI row */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <div className="bus-responsive-stat-grid gap-3 sm:gap-4 mb-6">
             <KpiCard
               label="Participants"
               value={participants.toLocaleString()}
@@ -659,7 +700,7 @@ const VendorChallengeDetailPage: React.FC = () => {
           </div>
 
           {/* Tabs */}
-          <div className="flex flex-wrap gap-1 mb-5 bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700 w-fit">
+          <div className="flex flex-wrap gap-1 mb-5 w-full max-w-full bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-200 dark:border-gray-700">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -683,7 +724,7 @@ const VendorChallengeDetailPage: React.FC = () => {
           {/* ── Overview ── */}
           {activeTab === 'overview' && (
             <div className="space-y-4 sm:space-y-5">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
+          <div className="bus-responsive-two-col gap-4 lg:gap-5">
             <div className="space-y-4">
               {challenge.heroImage && (
                 <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -915,7 +956,7 @@ const VendorChallengeDetailPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-4 pt-5 border-t border-gray-100 dark:border-gray-700">
+              <div className="mt-5 bus-responsive-tile-grid gap-4 pt-5 border-t border-gray-100 dark:border-gray-700">
                 {[
                   { label: 'Metric', value: challenge.metricType },
                   { label: 'Goal per Partner', value: challenge.goalValue?.toLocaleString() ?? '—' },
@@ -1008,7 +1049,7 @@ const VendorChallengeDetailPage: React.FC = () => {
                   <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Partners submit proof of their posts from the challenge page.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="bus-responsive-two-col gap-4">
                   {submissions.map(sub => (
                     <VendorSubmissionCard key={sub.id} sub={sub} />
                   ))}

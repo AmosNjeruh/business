@@ -246,7 +246,7 @@ const CampaignSummary: React.FC<CampaignSummaryProps> = ({
           <FaCalendar className="mr-2 text-emerald-500" />
           Campaign Schedule
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bus-responsive-two-col gap-4">
           <div>
             <p className="text-xs text-slate-500 dark:text-slate-400">Start Date</p>
             <p className="text-slate-900 dark:text-white">{formatDate(formData.startDate)}</p>
@@ -379,7 +379,7 @@ const CampaignSummary: React.FC<CampaignSummaryProps> = ({
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
                 Promotional Images ({promotionalImages.length})
               </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="bus-responsive-tile-grid gap-4">
                 {promotionalImages.map((img, index) => (
                   <img
                     key={index}

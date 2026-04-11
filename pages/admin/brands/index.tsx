@@ -428,7 +428,7 @@ const AdminBrandsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="bus-responsive-card-grid gap-5">
             {filtered.map((brand) => (
               <div
                 key={brand.id}
@@ -479,7 +479,7 @@ const AdminBrandsPage: React.FC = () => {
                   <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 line-clamp-2">{brand.description}</p>
                 )}
 
-                <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bus-responsive-stat-grid gap-2 mb-4">
                   <div className="rounded-xl bg-slate-50 dark:bg-white/3 border border-slate-200 dark:border-white/6 p-2 text-center">
                     <p className="text-base font-bold text-slate-900 dark:text-white">{brand.activeCampaigns ?? 0}</p>
                     <p className="text-[9px] text-slate-400 dark:text-slate-500 flex items-center justify-center gap-0.5 mt-0.5">
@@ -530,7 +530,7 @@ const AdminBrandsPage: React.FC = () => {
 
         {/* Summary stats */}
         {brands.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="bus-responsive-stat-grid gap-4">
             {[
               { label: "Total Brands", val: brands.length, color: "text-indigo-600 dark:text-indigo-400" },
               { label: "Active Campaigns", val: brands.reduce((s, b) => s + (b.activeCampaigns || 0), 0), color: "text-emerald-600 dark:text-emerald-400" },

@@ -190,7 +190,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bus-responsive-tile-grid gap-3">
                   <div>
                     <label className="block text-[10px] font-medium text-slate-700 dark:text-slate-300 mb-1">
                       Commission Type

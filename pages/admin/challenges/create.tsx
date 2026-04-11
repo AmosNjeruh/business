@@ -304,7 +304,7 @@ const GoalSection: React.FC<{
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
           Performance Metric <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="bus-responsive-two-col gap-2">
           {METRIC_OPTIONS.map((m) => (
             <button key={m.value} type="button"
               onClick={() => setForm((f) => ({ ...f, metricType: m.value }))}
@@ -323,7 +323,7 @@ const GoalSection: React.FC<{
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-3">
+      <div className="bus-responsive-tile-grid gap-3">
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
             Goal Target <span className="text-red-500">*</span>
@@ -373,7 +373,7 @@ const GoalSection: React.FC<{
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Content Direction
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="bus-responsive-two-col gap-2">
             <button
               type="button"
               onClick={() => setForm((f) => ({ ...f, contentStyle: 'CREATOR_CREATIVITY' }))}
@@ -439,7 +439,7 @@ const GoalSection: React.FC<{
             </button>
           </div>
           {showIndividualPlatforms && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+            <div className="bus-responsive-two-col gap-2 mt-2">
               {SOCIAL_PLATFORM_OPTIONS.map((platform) => {
                 const selected = form.socialPlatforms.includes(platform.value)
                 return (
@@ -543,7 +543,7 @@ const PrizesSection: React.FC<{
         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
           Prize Structure <span className="text-red-500">*</span>
         </label>
-        <div className="grid grid-cols-1 xs:grid-cols-3 sm:grid-cols-3 gap-3">
+        <div className="bus-responsive-tile-grid gap-3">
           {PRIZE_STRUCTURES.map((ps) => (
             <button key={ps.value} type="button"
               onClick={() => setForm((f) => ({ ...f, prizeStructure: ps.value }))}
@@ -554,14 +554,12 @@ const PrizesSection: React.FC<{
               }`}
             >
               <div className="text-xl mb-1.5">{ps.icon}</div>
-              <div className="flex items-center gap-2">
-                <div className="font-semibold text-sm text-gray-900 dark:text-white">{ps.label}</div>
-                {ps.value === 'TIERED' && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
-                    Recommended
-                  </span>
-                )}
-              </div>
+              <div className="font-semibold text-sm text-gray-900 dark:text-white">{ps.label}</div>
+              {ps.value === 'TIERED' && (
+                <span className="inline-flex w-fit max-w-full mt-1 text-[10px] px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                  Recommended
+                </span>
+              )}
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{ps.desc}</div>
             </button>
           ))}
@@ -705,9 +703,9 @@ const PaymentSummaryPage: React.FC<PaymentSummaryProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div className="flex flex-col gap-6 @xl/bus-main:flex-row @xl/bus-main:items-start @xl/bus-main:gap-8">
         {/* Left — challenge summary */}
-        <div className="lg:col-span-3 space-y-5">
+        <div className="min-w-0 flex-1 space-y-5 @xl/bus-main:min-w-0 @xl/bus-main:flex-[3]">
           {/* Hero banner */}
           {form.heroImage && (
             <div className="relative w-full h-40 rounded-2xl overflow-hidden">
@@ -734,7 +732,7 @@ const PaymentSummaryPage: React.FC<PaymentSummaryProps> = ({
           {/* Key details */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 space-y-4">
             <h4 className="font-bold text-gray-900 dark:text-white text-sm">Challenge Overview</h4>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="bus-responsive-two-col gap-4">
               {[
                 { label: 'Metric', value: `${metric?.icon} ${metric?.label}` },
                 { label: 'Goal', value: parseInt(form.goalValue || '0').toLocaleString() },
@@ -775,7 +773,7 @@ const PaymentSummaryPage: React.FC<PaymentSummaryProps> = ({
         </div>
 
         {/* Right — payment */}
-        <div className="lg:col-span-2 space-y-5">
+        <div className="w-full min-w-0 space-y-5 @xl/bus-main:w-auto @xl/bus-main:max-w-md @xl/bus-main:flex-[2] @xl/bus-main:flex-shrink-0">
           {/* Fee breakdown */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 sticky top-4">
             <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-4">Payment Summary</h4>
@@ -1204,7 +1202,7 @@ const CreateChallengePage: React.FC = () => {
               </div>
 
               {/* Two-column layout */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="bus-responsive-two-col gap-4 sm:gap-6">
                 <div className="space-y-4">
                   {SECTIONS.filter((s) => s.id === 'basics' || s.id === 'goal').map((s) => (
                     <Section key={s.id} id={s.id} title={s.title} subtitle={s.subtitle} icon={s.icon}

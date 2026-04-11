@@ -292,7 +292,7 @@ const AdminTeamPage: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="bus-responsive-stat-grid gap-4">
           {[
             { label: "Total Members", val: members.length, color: "text-blue-600 dark:text-blue-400" },
             { label: "Active", val: activeMembers.length, color: "text-emerald-600 dark:text-emerald-400" },
