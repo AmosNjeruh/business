@@ -48,14 +48,20 @@ const METRIC_OPTIONS: { value: ChallengeMetricType; label: string; desc: string;
   { value: 'CUSTOM',  label: 'Custom',            desc: 'Metric tracked & updated manually by the platform admin', icon: '📊' },
 ]
 
-const SOCIAL_PLATFORM_OPTIONS = [
+type ChallengeSocialPlatformOption = {
+  readonly value: string
+  readonly label: string
+  readonly manual?: boolean
+}
+
+const SOCIAL_PLATFORM_OPTIONS: readonly ChallengeSocialPlatformOption[] = [
   { value: 'instagram', label: 'Instagram' },
   { value: 'facebook', label: 'Facebook' },
   { value: 'tiktok', label: 'TikTok' },
   { value: 'youtube', label: 'YouTube' },
   { value: 'x', label: 'Twitter/X', manual: true },
   { value: 'linkedin', label: 'LinkedIn' },
-] as const
+]
 
 const PRIZE_STRUCTURES: { value: PrizeStructure; label: string; desc: string; icon: string }[] = [
   { value: 'TIERED',           label: 'Tiered (Top N)',   desc: 'Multiple ranked slots with different prizes', icon: '🏅' },
