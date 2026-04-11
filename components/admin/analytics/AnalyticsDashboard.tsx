@@ -190,33 +190,52 @@ export function AnalyticsHero({
         : "bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600";
 
   return (
-    <header className="space-y-4">
-      <div className="flex flex-col lg:flex-row lg:items-start gap-4 lg:gap-6">
-        <div className="flex items-start gap-3 sm:gap-4 min-w-0 flex-1">
+    <header className="w-full min-w-0 space-y-4">
+      {/*
+        Narrow <main> (e.g. copilot open): stack full-width rows.
+        Wide desktop (container ≥ 48rem): two columns with minmax(18rem,1fr) so the title track never
+        collapses to zero — unlike plain 1fr | auto grids.
+      */}
+      <div
+        className={
+          "flex w-full min-w-0 flex-col gap-4 " +
+          "@min-[48rem]/bus-main:grid @min-[48rem]/bus-main:items-start @min-[48rem]/bus-main:gap-6 " +
+          "@min-[48rem]/bus-main:[grid-template-columns:minmax(18rem,1fr)_auto]"
+        }
+      >
+        <div className="flex w-full min-w-0 items-start gap-3 sm:gap-4 @min-[48rem]/bus-main:min-w-0">
           <Link
             href={backHref}
-            className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shrink-0 mt-0.5"
+            className="mt-0.5 shrink-0 rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-white"
             title={backLabel}
           >
             <FaArrowLeft className="h-5 w-5" />
           </Link>
           <div className="min-w-0 flex-1 space-y-1">
-            <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">{eyebrow}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">{eyebrow}</p>
             <div className="flex flex-wrap items-center gap-2 gap-y-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">{title}</h1>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white sm:text-3xl">{title}</h1>
               {statusLabel && (
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${statusRing}`}>{statusLabel}</span>
+                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusRing}`}>{statusLabel}</span>
               )}
             </div>
-            {subtitle && <p className="text-sm text-slate-500 dark:text-slate-400 max-w-2xl leading-relaxed">{subtitle}</p>}
-            <p className="flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400 tabular-nums pt-0.5">
-              <FaClock className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            {subtitle && (
+              <p className="w-full min-w-0 text-sm leading-relaxed text-slate-500 dark:text-slate-400">{subtitle}</p>
+            )}
+            <p className="flex items-center gap-1.5 pt-0.5 text-sm tabular-nums text-slate-500 dark:text-slate-400">
+              <FaClock className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
               Last updated {lastUpdated}
             </p>
           </div>
         </div>
         {rightSlot && (
-          <div className="flex flex-col lg:flex-row lg:flex-wrap items-stretch lg:items-end lg:justify-end gap-2 shrink-0 w-full min-w-0 max-w-full lg:max-w-none">
+          <div
+            className={
+              "flex w-full min-w-0 flex-col gap-3 " +
+              "@min-[48rem]/bus-main:w-auto @min-[48rem]/bus-main:min-w-0 @min-[48rem]/bus-main:max-w-full " +
+              "@min-[48rem]/bus-main:justify-self-end"
+            }
+          >
             {rightSlot}
           </div>
         )}
@@ -511,9 +530,13 @@ export function AnalyticsPillToggle<T extends string>({
   label?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1.5 items-stretch lg:items-end">
-      {label && <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 lg:text-right">{label}</span>}
-      <div className="flex flex-wrap gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+    <div className="flex w-full min-w-0 flex-col items-stretch gap-1.5 @min-[48rem]/bus-main:items-end">
+      {label && (
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 @min-[48rem]/bus-main:text-right">
+          {label}
+        </span>
+      )}
+      <div className="flex w-full min-w-0 flex-wrap gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
         {options.map((opt) => {
           const on = value === opt;
           return (

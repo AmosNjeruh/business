@@ -6,6 +6,7 @@ import { useRouter } from "next/router";
 import Header from "./Header";
 import SideBar from "./SideBar";
 import BusinessAssistantPanel from "./BusinessAssistantPanel";
+import { useBusinessAssistant } from "@/contexts/BusinessAssistantContext";
 import { getCurrentUser } from "@/services/auth";
 import toast from "react-hot-toast";
 
@@ -17,7 +18,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const { aiAssistantOpen, setAiAssistantOpen } = useBusinessAssistant();
   const assistantResizeSkipFirst = useRef(true);
 
   useEffect(() => {
@@ -61,8 +62,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <Header
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
-        aiAssistantOpen={aiAssistantOpen}
-        onAiAssistantToggle={() => setAiAssistantOpen((o) => !o)}
       />
       <SideBar
         isMobileMenuOpen={isMobileMenuOpen}

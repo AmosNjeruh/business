@@ -28,6 +28,8 @@ export interface AssistantContextPayload {
   query?: Record<string, unknown>;
   summary?: string;
   keyMetrics?: Record<string, unknown>;
+  /** API-backed snapshot for the current route (campaign analytics, workspace KPIs, etc.) */
+  pageSnapshot?: Record<string, unknown>;
 }
 
 export interface AssistantRequestBody {

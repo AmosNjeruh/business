@@ -30,25 +30,27 @@ import {
 import { getCurrentUser, logout } from "@/services/auth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBrand } from "@/contexts/BrandContext";
+import { useBusinessAssistant } from "@/contexts/BusinessAssistantContext";
 import { getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } from "@/services/vendor";
 import toast from "react-hot-toast";
 
 interface HeaderProps {
   isMobileMenuOpen: boolean;
   setIsMobileMenuOpen: (open: boolean) => void;
-  aiAssistantOpen?: boolean;
-  onAiAssistantToggle?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   isMobileMenuOpen,
   setIsMobileMenuOpen,
-  aiAssistantOpen = false,
-  onAiAssistantToggle,
 }) => {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { brands, selectedBrand, setSelectedBrand, isLoading: brandsLoading } = useBrand();
+  const {
+    aiAssistantOpen,
+    setAiAssistantOpen,
+    resetAssistantSession,
+  } = useBusinessAssistant();
   const [user, setUser] = useState<any>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showBrandMenu, setShowBrandMenu] = useState(false);
@@ -179,6 +181,7 @@ const Header: React.FC<HeaderProps> = ({
   };
 
   const handleLogout = () => {
+    resetAssistantSession();
     logout();
     router.push("/admin/auth");
   };
@@ -316,7 +319,7 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-1 sm:gap-1.5">
           <button
             type="button"
-            onClick={() => onAiAssistantToggle?.()}
+            onClick={() => setAiAssistantOpen((o) => !o)}
             title={aiAssistantOpen ? "Close AI assistant" : "Open AI assistant"}
             aria-label={aiAssistantOpen ? "Close AI assistant" : "Open AI assistant"}
             aria-pressed={aiAssistantOpen}
@@ -326,7 +329,13 @@ const Header: React.FC<HeaderProps> = ({
                 : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-white/5"
             }`}
           >
-            <FaRobot className="h-4 w-4" />
+            <FaRobot
+              className={`h-4 w-4 ${
+                aiAssistantOpen
+                  ? "drop-shadow-[0_0_10px_rgba(16,185,129,0.95)] dark:drop-shadow-[0_0_12px_rgba(52,211,153,0.9)]"
+                  : "assistant-header-robot-glow"
+              }`}
+            />
           </button>
 
           {/* Theme toggle */}

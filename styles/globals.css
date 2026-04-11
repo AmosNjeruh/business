@@ -59,6 +59,36 @@ html:not(.dark) *::-webkit-scrollbar-thumb {
   }
 }
 
+/* Header AI assistant (robot) — soft pulsing emerald glow when panel is closed */
+@keyframes assistant-header-robot-glow-kf {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.45))
+      drop-shadow(0 0 10px rgba(16, 185, 129, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.75))
+      drop-shadow(0 0 16px rgba(16, 185, 129, 0.45));
+  }
+}
+
+.assistant-header-robot-glow {
+  animation: assistant-header-robot-glow-kf 2.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assistant-header-robot-glow {
+    animation: none;
+    filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.65))
+      drop-shadow(0 0 14px rgba(52, 211, 153, 0.35));
+  }
+
+  .dark .assistant-header-robot-glow {
+    filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.7))
+      drop-shadow(0 0 18px rgba(16, 185, 129, 0.25));
+  }
+}
+
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out forwards;
 }

@@ -688,7 +688,7 @@ export default function CampaignAdvancedAnalyticsPage() {
                 <AnalyticsCardHeader
                   icon={<FaLayerGroup />}
                   title="Metric snapshots"
-                  description={`Bucketed post metrics · ${snapshotTs?.window ?? snapWindow} · ${snapshotTs?.bucketMinutes ?? "—"}m`}
+                  description={`Post metrics over time (lines) · ${snapshotTs?.window ?? snapWindow} · ${snapshotTs?.bucketMinutes ?? "—"}m`}
                   actions={<AnalyticsPillToggle options={TS_WINDOWS} value={snapWindow} onChange={setSnapWindow} />}
                 />
                 <AnalyticsCardBody>
@@ -697,19 +697,19 @@ export default function CampaignAdvancedAnalyticsPage() {
                   ) : (
                     <div className="h-[300px] sm:h-[340px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={snapChartData} margin={{ top: 4, right: 8, left: -12, bottom: 52 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke={cp.grid} vertical={false} />
-                          <XAxis dataKey="t" tick={{ fontSize: 8, fill: cp.tickSm }} interval="preserveStartEnd" angle={-20} textAnchor="end" height={56} />
-                          <YAxis tick={{ fontSize: 9, fill: cp.tickSm }} tickFormatter={fmtNum} width={36} />
+                        <LineChart data={snapChartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke={cp.grid} />
+                          <XAxis dataKey="t" tick={{ fontSize: 9, fill: cp.tickSm }} interval="preserveStartEnd" />
+                          <YAxis tick={{ fontSize: 9, fill: cp.tickSm }} tickFormatter={fmtNum} width={44} />
                           <Tooltip content={<AnalyticsChartTooltip />} />
                           <Legend wrapperStyle={{ fontSize: 9 }} />
-                          <Bar dataKey="likes" name="LIKES" stackId="m" fill={PALETTE[0]} maxBarSize={28} />
-                          <Bar dataKey="comments" name="CMT (Comments)" stackId="m" fill={PALETTE[1]} maxBarSize={28} />
-                          <Bar dataKey="shares" name="SHARES" stackId="m" fill={PALETTE[2]} maxBarSize={28} />
-                          <Bar dataKey="views" name="VIEWS" stackId="m" fill={PALETTE[3]} maxBarSize={28} />
-                          <Bar dataKey="impressions" name="IMP (Impressions)" stackId="m" fill={PALETTE[4]} maxBarSize={28} />
-                          <Bar dataKey="reach" name="REACH" stackId="m" fill={PALETTE[5]} maxBarSize={28} />
-                        </BarChart>
+                          <Line type="monotone" dataKey="likes" name="LIKES" stroke={PALETTE[0]} strokeWidth={2.2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="comments" name="CMT (Comments)" stroke={PALETTE[1]} strokeWidth={2.2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="shares" name="SHARES" stroke={PALETTE[2]} strokeWidth={2.2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="views" name="VIEWS" stroke={PALETTE[3]} strokeWidth={2.2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="impressions" name="IMP (Impressions)" stroke={PALETTE[4]} strokeWidth={2.2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                          <Line type="monotone" dataKey="reach" name="REACH" stroke={PALETTE[5]} strokeWidth={2.2} dot={{ r: 2 }} activeDot={{ r: 4 }} />
+                        </LineChart>
                       </ResponsiveContainer>
                     </div>
                   )}
