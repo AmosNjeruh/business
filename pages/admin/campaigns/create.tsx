@@ -26,14 +26,16 @@ import CampaignSummaryPage from '@/components/admin/campaigns/CampaignSummaryPag
 import CampaignPreviewModal from '@/components/admin/campaigns/CampaignPreviewModal'
 import useCurrency from '@/hooks/useCurrency'
 
-const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS = [
+type CampaignSocialPlatformOption = { value: string; label: string; manual?: boolean }
+
+const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS: CampaignSocialPlatformOption[] = [
   { value: 'instagram', label: 'Instagram' },
   { value: 'facebook', label: 'Facebook' },
   { value: 'tiktok', label: 'TikTok' },
   { value: 'youtube', label: 'YouTube' },
   { value: 'x', label: 'Twitter/X', manual: true },
   { value: 'linkedin', label: 'LinkedIn' },
-] as const
+]
 
 interface FollowerTier {
   minFollowers: number
@@ -1088,7 +1090,7 @@ const CreateCampaignPage: React.FC = () => {
                               >
                                 <div className="flex items-center justify-between">
                                   <span className="text-sm font-medium">{platform.label}</span>
-                                  {'manual' in platform && platform.manual ? (
+                                  {platform.manual ? (
                                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
                                       Manual tracking
                                     </span>

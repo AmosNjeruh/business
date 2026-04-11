@@ -44,14 +44,16 @@ const METRIC_OPTIONS: { value: ChallengeMetricType; label: string; desc: string;
   { value: 'CUSTOM',  label: 'Custom',            desc: 'Metric tracked & updated manually by the platform admin', icon: '📊' },
 ]
 
-const SOCIAL_PLATFORM_OPTIONS = [
+type SocialPlatformOption = { value: string; label: string; manual?: boolean }
+
+const SOCIAL_PLATFORM_OPTIONS: SocialPlatformOption[] = [
   { value: 'instagram', label: 'Instagram' },
   { value: 'facebook', label: 'Facebook' },
   { value: 'tiktok', label: 'TikTok' },
   { value: 'youtube', label: 'YouTube' },
   { value: 'x', label: 'Twitter/X', manual: true },
   { value: 'linkedin', label: 'LinkedIn' },
-] as const
+]
 
 const PRIZE_STRUCTURES: { value: PrizeStructure; label: string; desc: string; icon: string }[] = [
   { value: 'TIERED',           label: 'Tiered (Top N)',   desc: 'Multiple ranked slots with different prizes', icon: '🏅' },
@@ -427,7 +429,7 @@ const GoalSection: React.FC<{
                     }`}>
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">{platform.label}</span>
-                      {'manual' in platform && platform.manual ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Manual tracking</span> : null}
+                      {platform.manual ? <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">Manual tracking</span> : null}
                     </div>
                   </button>
                 )
