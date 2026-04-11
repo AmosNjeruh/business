@@ -44,11 +44,17 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
   onAddTier,
   onRemoveTier,
 }) => {
-  const { formatPrice, selectedCurrency: userCurrency, convertUSDToKES } = useCurrency()
-  const currencySymbol = userCurrency === 'KES' ? 'KES' : 'USD'
-  
-  const budgetInUSD = formData.budget 
-    ? (userCurrency === 'KES' ? parseFloat(formData.budget) / 130 : parseFloat(formData.budget))
+  const {
+    formatFromUSD,
+    userAmountToUSD,
+    formatUserAmount,
+    selectedCurrency: userCurrency,
+  } = useCurrency()
+
+  const inputCurrencyLabel = userCurrency
+
+  const budgetInUSD = formData.budget
+    ? userAmountToUSD(parseFloat(formData.budget) || 0)
     : 0
   
   const balanceCoverage = vendorBalance !== null && vendorBalance !== undefined && budgetInUSD > 0
@@ -70,7 +76,7 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Account Balance:</span>
                 <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  {vendorBalance !== null && vendorBalance !== undefined ? formatPrice(convertUSDToKES(vendorBalance)) : 'Loading...'}
+                  {vendorBalance !== null && vendorBalance !== undefined ? formatFromUSD(vendorBalance) : 'Loading...'}
                 </span>
               </div>
               {onUseBalanceChange && (
@@ -94,10 +100,10 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
                 ) : vendorBalance! > 0 ? (
                   <>
                     <div className="text-xs text-slate-700 dark:text-slate-300">
-                      Your balance will cover {formatPrice(convertUSDToKES(vendorBalance!))} ({balanceCoverage.toFixed(1)}%)
+                      Your balance will cover {formatFromUSD(vendorBalance!)} ({balanceCoverage.toFixed(1)}%)
                     </div>
                     <div className="text-xs text-slate-700 dark:text-slate-300">
-                      Remaining to pay: <span className="font-semibold">{formatPrice(convertUSDToKES(remainingNeeded))}</span>
+                      Remaining to pay: <span className="font-semibold">{formatFromUSD(remainingNeeded)}</span>
                     </div>
                   </>
                 ) : (
@@ -114,7 +120,7 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
         {formData.budget !== undefined && campaignBudget === undefined && (
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Campaign Budget ({currencySymbol}) *
+              Campaign Budget ({inputCurrencyLabel}) *
             </label>
             <input
               type="number"
@@ -129,7 +135,7 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
               placeholder="0.00"
             />
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              This is the total amount you're willing to spend on this campaign. Minimum budget is {formatPrice(10)}.
+              This is the total amount you're willing to spend on this campaign. Minimum budget is {formatUserAmount(10)} (in your preferred currency).
             </p>
             {errors.budget && (
               <p className="mt-1 text-xs text-red-600 dark:text-red-400">{errors.budget}</p>
@@ -178,7 +184,7 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
         {formData.budget !== undefined && campaignBudget === undefined && formData.paymentStructure === 'INFLUENCER' && formData.paymentType === 'fixed' && (
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Payment Per Influencer ({currencySymbol}) *
+              Payment Per Influencer ({inputCurrencyLabel}) *
             </label>
             <input
               type="number"
@@ -202,7 +208,7 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
         {formData.budget !== undefined && campaignBudget === undefined && ['CPC', 'CPA'].includes(formData.paymentStructure) && (
           <div>
             <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">
-              Amount per {formData.paymentStructure === 'CPC' ? 'click' : 'action'} ({currencySymbol}) *
+              Amount per {formData.paymentStructure === 'CPC' ? 'click' : 'action'} ({inputCurrencyLabel}) *
             </label>
             <input
               type="number"
@@ -261,7 +267,7 @@ const BudgetPaymentForm: React.FC<BudgetPaymentFormProps> = ({
                     />
                   </div>
                   <div className="col-span-12 sm:col-span-3">
-                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 mb-1">Payment ({currencySymbol})</label>
+                    <label className="block text-[10px] text-slate-500 dark:text-slate-400 mb-1">Payment ({inputCurrencyLabel})</label>
                     <input
                       type="number"
                       step="0.01"

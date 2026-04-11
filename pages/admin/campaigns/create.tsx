@@ -25,6 +25,7 @@ import ProductSelector from '@/components/admin/campaigns/ProductSelector'
 import CampaignSummaryPage from '@/components/admin/campaigns/CampaignSummaryPage'
 import CampaignPreviewModal from '@/components/admin/campaigns/CampaignPreviewModal'
 import useCurrency from '@/hooks/useCurrency'
+import type { SupportedCurrency } from '@/contexts/CurrencyProvider'
 
 const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS = [
   { value: 'instagram', label: 'Instagram' },
@@ -44,7 +45,14 @@ interface FollowerTier {
 const CreateCampaignPage: React.FC = () => {
   const router = useRouter()
   const { selectedBrand } = useBrand()
-  const { userCountry } = useCurrency()
+  const {
+    userCountry,
+    userAmountToUSD,
+    convertFromUSD,
+    formatUserAmount,
+    convertUSDToPaystackCurrency,
+    setSelectedCurrency: setPreferredDisplayCurrency,
+  } = useCurrency()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [thumbnailImage, setThumbnailImage] = useState<string | null>(null)
@@ -55,9 +63,7 @@ const CreateCampaignPage: React.FC = () => {
   const [showIndividualPlatforms, setShowIndividualPlatforms] = useState(false)
   const [hashtagInput, setHashtagInput] = useState('')
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paystack' | null>(null)
-  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'KES' | 'NGN'>('USD')
-  const USD_TO_NGN = 1600
-  const USD_TO_KES = 130
+  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'KES'>('USD')
   const [isPublic, setIsPublic] = useState(true)
   const [requireConnectedSocialMedia, setRequireConnectedSocialMedia] = useState(false)
   const [vendorBalance, setVendorBalance] = useState<number | null>(null)
@@ -148,7 +154,11 @@ const CreateCampaignPage: React.FC = () => {
           if (draft.audienceTargeting) setAudienceTargeting(draft.audienceTargeting)
           if (draft.selectedProducts) setSelectedProducts(draft.selectedProducts)
           if (draft.selectedPaymentMethod) setSelectedPaymentMethod(draft.selectedPaymentMethod)
-          if (draft.selectedCurrency) setSelectedCurrency(draft.selectedCurrency)
+          if (draft.selectedCurrency === 'KES' || draft.selectedCurrency === 'USD') {
+            setSelectedCurrency(draft.selectedCurrency)
+          } else if (draft.selectedCurrency === 'NGN') {
+            setSelectedCurrency('USD')
+          }
           if (draft.showSummary) setShowSummary(draft.showSummary)
           if (draft.currentStep) setCurrentStep(draft.currentStep)
           else if (draft.formData?.objective) setCurrentStep('create')
@@ -203,6 +213,27 @@ const CreateCampaignPage: React.FC = () => {
       setDraftLoaded(true)
     }
   }, [])
+
+  // Align display currency with vendor profile (same source as vendor frontend settings)
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data: any = await getVendorProfile()
+        if (cancelled || !data?.preferredCurrency) return
+        const c = String(data.preferredCurrency).toUpperCase()
+        const allowed: SupportedCurrency[] = ['USD', 'NGN', 'KES', 'EUR', 'GBP']
+        if (allowed.includes(c as SupportedCurrency)) {
+          setPreferredDisplayCurrency(c as SupportedCurrency)
+        }
+      } catch {
+        // ignore — localStorage default remains
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [setPreferredDisplayCurrency])
 
   // Fetch vendor balance
   useEffect(() => {
@@ -521,12 +552,12 @@ const CreateCampaignPage: React.FC = () => {
 
     if (formData.paymentStructure === 'INFLUENCER') {
       const MIN_PAYMENT_USD = 0.5
-      const minPaymentInNGN = MIN_PAYMENT_USD * USD_TO_NGN
+      const minPaymentInUserCurrency = convertFromUSD(MIN_PAYMENT_USD)
       if (formData.paymentType === 'fixed') {
         if (!formData.paymentPerInfluencer || parseFloat(formData.paymentPerInfluencer) <= 0) {
           newErrors.paymentPerInfluencer = 'Valid payment per influencer is required'
-        } else if (parseFloat(formData.paymentPerInfluencer) < minPaymentInNGN) {
-          newErrors.paymentPerInfluencer = `Minimum payment per influencer is ₦${minPaymentInNGN.toFixed(2)} ($${MIN_PAYMENT_USD.toFixed(2)} USD)`
+        } else if (parseFloat(formData.paymentPerInfluencer) < minPaymentInUserCurrency) {
+          newErrors.paymentPerInfluencer = `Minimum payment per influencer is ${formatUserAmount(minPaymentInUserCurrency)} ($${MIN_PAYMENT_USD.toFixed(2)} USD)`
         }
         if (formData.budget && formData.paymentPerInfluencer && parseFloat(formData.budget) < parseFloat(formData.paymentPerInfluencer)) {
           newErrors.budget = 'Budget must be sufficient for at least one influencer'
@@ -537,8 +568,8 @@ const CreateCampaignPage: React.FC = () => {
           if (!tier.amount || parseFloat(tier.amount) <= 0) {
             newErrors[`tier_${index}_amount`] = 'Please enter a valid amount for this tier'
             tierErrors = true
-          } else if (parseFloat(tier.amount) < minPaymentInNGN) {
-            newErrors[`tier_${index}_amount`] = `Minimum payment for this tier is ₦${minPaymentInNGN.toFixed(2)} ($${MIN_PAYMENT_USD.toFixed(2)} USD)`
+          } else if (parseFloat(tier.amount) < minPaymentInUserCurrency) {
+            newErrors[`tier_${index}_amount`] = `Minimum payment for this tier is ${formatUserAmount(minPaymentInUserCurrency)} ($${MIN_PAYMENT_USD.toFixed(2)} USD)`
             tierErrors = true
           }
           if (!tier.minFollowers) {
@@ -638,13 +669,24 @@ const CreateCampaignPage: React.FC = () => {
   const handlePayment = async () => {
     await ensureAudienceLocationPreselected()
 
-    const budgetInNGN = parseFloat(formData.budget)
-    if (isNaN(budgetInNGN) || budgetInNGN <= 0) {
+    const budgetInUserCurrency = parseFloat(formData.budget)
+    if (isNaN(budgetInUserCurrency) || budgetInUserCurrency <= 0) {
       toast.error('Please enter a valid budget amount')
       return
     }
 
-    const budgetInUSD = budgetInNGN / USD_TO_NGN
+    const budgetInUSD = userAmountToUSD(budgetInUserCurrency)
+
+    const apiSelectedProducts = selectedProducts.map((p) => ({
+      ...p,
+      commissionAmount:
+        p.commissionType === 'FIXED' &&
+        p.commissionAmount != null &&
+        Number.isFinite(p.commissionAmount)
+          ? userAmountToUSD(p.commissionAmount)
+          : p.commissionAmount,
+    }))
+
     let remainingPaymentNeeded = budgetInUSD
     if (useBalance && vendorBalance !== null) {
       if (vendorBalance >= budgetInUSD) {
@@ -680,7 +722,7 @@ const CreateCampaignPage: React.FC = () => {
       if (formData.paymentStructure === 'INFLUENCER') {
         if (formData.paymentType === 'fixed') {
           campaignData.paymentType = 'FIXED'
-          const paymentPerInfluencerInUSD = parseFloat(formData.paymentPerInfluencer) / USD_TO_NGN
+          const paymentPerInfluencerInUSD = userAmountToUSD(parseFloat(formData.paymentPerInfluencer) || 0)
           campaignData.paymentPerInfluencer = paymentPerInfluencerInUSD
           campaignData.maxInfluencers = Math.max(1, Math.floor(budgetInUSD / paymentPerInfluencerInUSD))
         } else if (formData.paymentType === 'tiered') {
@@ -690,15 +732,15 @@ const CreateCampaignPage: React.FC = () => {
             .map((tier) => ({
               minFollowers: Number(tier.minFollowers),
               maxFollowers: tier.maxFollowers ? Number(tier.maxFollowers) : null,
-              amount: parseFloat(tier.amount) / USD_TO_NGN,
+              amount: userAmountToUSD(parseFloat(tier.amount) || 0),
             }))
         }
       } else if (formData.paymentStructure && formData.paymentStructure !== 'COMMISSION_PER_SALE') {
-        campaignData.paymentAmount = parseFloat(formData.paymentAmount) / USD_TO_NGN
+        campaignData.paymentAmount = userAmountToUSD(parseFloat(formData.paymentAmount) || 0)
       }
 
-      if (formData.paymentStructure === 'COMMISSION_PER_SALE' && selectedProducts.length > 0) {
-        campaignData.selectedProducts = selectedProducts
+      if (formData.paymentStructure === 'COMMISSION_PER_SALE' && apiSelectedProducts.length > 0) {
+        campaignData.selectedProducts = apiSelectedProducts
       }
 
       setIsSubmitting(true)
@@ -711,8 +753,8 @@ const CreateCampaignPage: React.FC = () => {
           if (promotionalImages.length > 0) {
             await uploadAdditionalImages(createdCampaign.id, promotionalImages)
           }
-          if (selectedProducts.length > 0) {
-            await addProductsToCampaign(createdCampaign.id, selectedProducts)
+          if (apiSelectedProducts.length > 0) {
+            await addProductsToCampaign(createdCampaign.id, apiSelectedProducts)
           }
         }
         try {
@@ -766,7 +808,7 @@ const CreateCampaignPage: React.FC = () => {
       if (formData.paymentStructure === 'INFLUENCER') {
         if (formData.paymentType === 'fixed') {
           campaignData.paymentType = 'FIXED'
-          const paymentPerInfluencerInUSD = parseFloat(formData.paymentPerInfluencer) / USD_TO_NGN
+          const paymentPerInfluencerInUSD = userAmountToUSD(parseFloat(formData.paymentPerInfluencer) || 0)
           campaignData.paymentPerInfluencer = paymentPerInfluencerInUSD
           campaignData.maxInfluencers = Math.max(1, Math.floor(budgetInUSD / paymentPerInfluencerInUSD))
         } else if (formData.paymentType === 'tiered') {
@@ -776,15 +818,15 @@ const CreateCampaignPage: React.FC = () => {
             .map((tier) => ({
               minFollowers: Number(tier.minFollowers),
               maxFollowers: tier.maxFollowers ? Number(tier.maxFollowers) : null,
-              amount: parseFloat(tier.amount) / USD_TO_NGN,
+              amount: userAmountToUSD(parseFloat(tier.amount) || 0),
             }))
         }
       } else if (formData.paymentStructure && formData.paymentStructure !== 'COMMISSION_PER_SALE') {
-        campaignData.paymentAmount = parseFloat(formData.paymentAmount) / USD_TO_NGN
+        campaignData.paymentAmount = userAmountToUSD(parseFloat(formData.paymentAmount) || 0)
       }
 
-      if (formData.paymentStructure === 'COMMISSION_PER_SALE' && selectedProducts.length > 0) {
-        campaignData.selectedProducts = selectedProducts
+      if (formData.paymentStructure === 'COMMISSION_PER_SALE' && apiSelectedProducts.length > 0) {
+        campaignData.selectedProducts = apiSelectedProducts
       }
 
       if (typeof window !== 'undefined') {
@@ -796,6 +838,37 @@ const CreateCampaignPage: React.FC = () => {
             promotionalImagesCount: promotionalImages.length,
           }
           sessionStorage.setItem('pendingCampaign', JSON.stringify(campaignDataWithoutImages))
+
+          // Same IndexedDB name as vendor payment-success flow so images load after Paystack/Stripe return
+          if (thumbnailImage || promotionalImages.length > 0) {
+            try {
+              const dbName = 'campaignImages'
+              const request = indexedDB.open(dbName, 1)
+              request.onerror = () => {
+                console.warn('IndexedDB not available; images may need re-upload after payment')
+              }
+              request.onupgradeneeded = (event: any) => {
+                const db = event.target.result
+                if (!db.objectStoreNames.contains('images')) {
+                  db.createObjectStore('images', { keyPath: 'id' })
+                }
+              }
+              request.onsuccess = (event: any) => {
+                const db = event.target.result
+                if (!db.objectStoreNames.contains('images')) return
+                const transaction = db.transaction(['images'], 'readwrite')
+                const store = transaction.objectStore('images')
+                if (thumbnailImage) {
+                  store.put({ id: 'thumbnail', data: thumbnailImage })
+                }
+                promotionalImages.forEach((img, index) => {
+                  store.put({ id: `promotional_${index}`, data: img })
+                })
+              }
+            } catch (dbError) {
+              console.warn('Could not store images in IndexedDB:', dbError)
+            }
+          }
         } catch (storageError: any) {
           console.error('Storage error:', storageError)
         }
@@ -821,11 +894,10 @@ const CreateCampaignPage: React.FC = () => {
           setIsSubmitting(false)
         }
       } else if (selectedPaymentMethod === 'paystack') {
-        const paymentAmountInSelectedCurrency = selectedCurrency === 'NGN'
-          ? remainingPaymentNeeded * USD_TO_NGN
-          : selectedCurrency === 'KES'
-          ? remainingPaymentNeeded * USD_TO_KES
-          : remainingPaymentNeeded
+        const paymentAmountInSelectedCurrency = convertUSDToPaystackCurrency(
+          remainingPaymentNeeded,
+          selectedCurrency
+        )
         const data = await createPaystackSession({
           email: user.email!,
           amount: paymentAmountInSelectedCurrency,
@@ -958,7 +1030,7 @@ const CreateCampaignPage: React.FC = () => {
               useBalance={useBalance}
               remainingPaymentNeeded={(() => {
                 if (!useBalance || vendorBalance === null) return undefined
-                const budgetInUSD = parseFloat(formData.budget) / USD_TO_NGN
+                const budgetInUSD = userAmountToUSD(parseFloat(formData.budget) || 0)
                 if (vendorBalance >= budgetInUSD) return 0
                 if (vendorBalance > 0) return budgetInUSD - vendorBalance
                 return budgetInUSD

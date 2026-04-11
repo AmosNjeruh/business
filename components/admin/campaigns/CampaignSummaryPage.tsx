@@ -50,9 +50,9 @@ interface CampaignSummaryPageProps {
     }>
   } | null
   selectedPaymentMethod: 'stripe' | 'paystack' | null
-  selectedCurrency: 'USD' | 'KES' | 'NGN'
+  selectedCurrency: 'USD' | 'KES'
   onSelectPaymentMethod: (method: 'stripe' | 'paystack' | null) => void
-  onSelectCurrency: (currency: 'USD' | 'KES' | 'NGN') => void
+  onSelectCurrency: (currency: 'USD' | 'KES') => void
   onBackToEdit: () => void
   onPayment: () => void
   onShowPreview: () => void
@@ -83,10 +83,9 @@ const CampaignSummaryPage: React.FC<CampaignSummaryPageProps> = ({
   useBalance = true,
   remainingPaymentNeeded,
 }) => {
-  const { formatPrice, selectedCurrency: userCurrency, convertUSDToKES } = useCurrency()
-  const USD_TO_KES_RATE = 130
+  const { formatFromUSD, userAmountToUSD, convertUSDToPaystackCurrency } = useCurrency()
 
-  const budgetInUSD = userCurrency === 'KES' ? budget / USD_TO_KES_RATE : budget
+  const budgetInUSD = userAmountToUSD(budget)
   const amountToPayInUSD = useBalance && remainingPaymentNeeded !== undefined && remainingPaymentNeeded >= 0
     ? remainingPaymentNeeded
     : budgetInUSD
@@ -99,14 +98,13 @@ const CampaignSummaryPage: React.FC<CampaignSummaryPageProps> = ({
     }
 
     if (selectedPaymentMethod === 'paystack' && selectedCurrency === 'KES') {
-      const displayAmountKES = amountToPayInUSD * USD_TO_KES_RATE
+      const displayAmountKES = convertUSDToPaystackCurrency(amountToPayInUSD, 'KES')
       return `Pay KES ${displayAmountKES.toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    } else if (selectedPaymentMethod === 'paystack' && selectedCurrency === 'USD') {
-      return `Pay $${amountToPayInUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-    } else {
-      const budgetInKES = amountToPayInUSD * USD_TO_KES_RATE
-      return `Pay ${formatPrice(budgetInKES)}`
     }
+    if (selectedPaymentMethod === 'paystack' && selectedCurrency === 'USD') {
+      return `Pay $${amountToPayInUSD.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
+    return `Pay ${formatFromUSD(amountToPayInUSD)}`
   }
 
   return (
@@ -191,7 +189,7 @@ const CampaignSummaryPage: React.FC<CampaignSummaryPageProps> = ({
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Account Balance:</span>
               <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                {vendorBalance !== null && vendorBalance !== undefined ? formatPrice(convertUSDToKES(vendorBalance)) : 'Loading...'}
+                {vendorBalance !== null && vendorBalance !== undefined ? formatFromUSD(vendorBalance) : 'Loading...'}
               </span>
             </div>
             {balanceCoversFull ? (
@@ -200,8 +198,8 @@ const CampaignSummaryPage: React.FC<CampaignSummaryPageProps> = ({
               </div>
             ) : vendorBalance !== null && vendorBalance !== undefined && vendorBalance > 0 && remainingPaymentNeeded !== undefined ? (
               <div className="text-xs text-slate-700 dark:text-slate-300">
-                Balance will cover {formatPrice(convertUSDToKES(vendorBalance))}. 
-                Remaining to pay: <span className="font-semibold">{formatPrice(convertUSDToKES(remainingPaymentNeeded))}</span>
+                Balance will cover {formatFromUSD(vendorBalance)}. 
+                Remaining to pay: <span className="font-semibold">{formatFromUSD(remainingPaymentNeeded)}</span>
               </div>
             ) : null}
           </div>

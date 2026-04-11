@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { getProducts } from '@/services/vendor'
 import { FaSpinner, FaPlus, FaTimes, FaSearch } from 'react-icons/fa'
 import toast from 'react-hot-toast'
+import { useCurrency } from '@/hooks/useCurrency'
 
 interface ProductSelectorProps {
   selectedProducts: Array<{
@@ -26,6 +27,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   onProductsChange,
   errors,
 }) => {
+  const { selectedCurrency: preferredCurrency } = useCurrency()
   const [products, setProducts] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -228,7 +230,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
                   ) : (
                     <div>
                       <label className="block text-[10px] font-medium text-slate-700 dark:text-slate-300 mb-1">
-                        Commission Amount
+                        Commission Amount ({preferredCurrency})
                       </label>
                       <input
                         type="number"

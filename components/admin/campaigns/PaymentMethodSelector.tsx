@@ -7,8 +7,8 @@ import { useCurrency } from '@/hooks/useCurrency'
 interface PaymentMethodSelectorProps {
   selectedMethod: 'stripe' | 'paystack' | null
   onSelectMethod: (method: 'stripe' | 'paystack') => void
-  selectedCurrency?: 'USD' | 'KES' | 'NGN'
-  onSelectCurrency?: (currency: 'USD' | 'KES' | 'NGN') => void
+  selectedCurrency?: 'USD' | 'KES'
+  onSelectCurrency?: (currency: 'USD' | 'KES') => void
   amountInUSD: number
 }
 
@@ -19,11 +19,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   onSelectCurrency,
   amountInUSD,
 }) => {
-  const { formatPrice } = useCurrency()
-  const USD_TO_KES_RATE = 130
-  const USD_TO_NGN_RATE = 1600
-  const amountInKES = amountInUSD * USD_TO_KES_RATE
-  const amountInNGN = amountInUSD * USD_TO_NGN_RATE
+  const { formatFromUSD, convertUSDToPaystackCurrency } = useCurrency()
 
   const formatPaymentCurrency = (targetCurrency: string) => {
     if (targetCurrency === 'USD') {
@@ -33,18 +29,13 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
       }).format(amountInUSD)
     }
     if (targetCurrency === 'KES') {
+      const kes = convertUSDToPaystackCurrency(amountInUSD, 'KES')
       return new Intl.NumberFormat('en-KE', {
         style: 'currency',
         currency: 'KES',
-      }).format(amountInKES)
+      }).format(kes)
     }
-    if (targetCurrency === 'NGN') {
-      return new Intl.NumberFormat('en-NG', {
-        style: 'currency',
-        currency: 'NGN',
-      }).format(amountInNGN)
-    }
-    return formatPrice(amountInKES)
+    return formatFromUSD(amountInUSD)
   }
 
   return (
@@ -135,7 +126,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
             Select Currency
           </label>
           <div className="bus-responsive-stat-grid gap-3">
-            {(['USD', 'KES', 'NGN'] as const).map((currency) => (
+            {(['USD', 'KES'] as const).map((currency) => (
               <button
                 key={currency}
                 type="button"
@@ -150,7 +141,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
                 <div className="text-[10px] mt-1">
                   {currency === 'KES' && 'Kenyan Shilling'}
                   {currency === 'USD' && 'US Dollar'}
-                  {currency === 'NGN' && 'Nigerian Naira'}
                 </div>
               </button>
             ))}
@@ -178,7 +168,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
               ) : (
                 <>
                   <div className="text-xl font-bold text-slate-900 dark:text-white">
-                    {formatPrice(amountInKES)}
+                    {formatFromUSD(amountInUSD)}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     (= {formatPaymentCurrency('USD')})

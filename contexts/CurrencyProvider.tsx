@@ -8,7 +8,9 @@ import React, {
   ReactNode,
 } from "react";
 
-type SupportedCurrency = "USD" | "NGN" | "KES" | "EUR" | "GBP";
+export type SupportedCurrency = "USD" | "NGN" | "KES" | "EUR" | "GBP";
+
+export type PaystackChargeCurrency = "USD" | "KES";
 
 export interface BusinessCurrencyContextType {
   /** The ISO currency code currently selected by the user */
@@ -19,6 +21,18 @@ export interface BusinessCurrencyContextType {
   formatFromUSD: (amountInUSD: number) => string;
   /** Convert an amount in USD to the raw numeric amount in the user's currency */
   convertFromUSD: (amountInUSD: number) => number;
+  /**
+   * Convert a number the user typed in their preferred currency to USD for the API
+   * (inverse of convertFromUSD for the active selectedCurrency).
+   */
+  userAmountToUSD: (amountInUserCurrency: number) => number;
+  /** Format a raw amount already in the user's preferred currency (no FX conversion) */
+  formatUserAmount: (amountInUserCurrency: number) => string;
+  /** Convert a USD amount into a Paystack settlement currency (USD / KES) */
+  convertUSDToPaystackCurrency: (
+    amountInUSD: number,
+    target: PaystackChargeCurrency
+  ) => number;
   /** Change the active currency (also persisted to localStorage) */
   setSelectedCurrency: (currency: SupportedCurrency) => void;
   /** Best-effort detected user country (for location defaults) */
@@ -31,10 +45,11 @@ interface BusinessCurrencyProviderProps {
 
 const STORAGE_KEY = "t360:business:preferredCurrency";
 
-const STATIC_RATES_USD_TO: Record<SupportedCurrency, number> = {
+/** USD → local: amount_local = usd * rate */
+export const STATIC_RATES_USD_TO: Record<SupportedCurrency, number> = {
   USD: 1,
   NGN: 1600, // approximate, matches existing NGN usage
-  KES: 130,  // rough parity with frontend’s KES assumption
+  KES: 130, // rough parity with frontend’s KES assumption
   EUR: 0.9,
   GBP: 0.78,
 };
@@ -121,6 +136,16 @@ export const BusinessCurrencyProvider: React.FC<BusinessCurrencyProviderProps> =
     [selectedCurrency]
   );
 
+  const userAmountToUSD = useCallback(
+    (amountInUserCurrency: number): number => {
+      if (!Number.isFinite(amountInUserCurrency)) return 0;
+      const rate = STATIC_RATES_USD_TO[selectedCurrency] ?? 1;
+      if (!rate || rate <= 0) return amountInUserCurrency;
+      return amountInUserCurrency / rate;
+    },
+    [selectedCurrency]
+  );
+
   const formatFromUSD = useCallback(
     (amountInUSD: number): string => {
       const value = convertFromUSD(amountInUSD);
@@ -133,11 +158,35 @@ export const BusinessCurrencyProvider: React.FC<BusinessCurrencyProviderProps> =
     [convertFromUSD, currencySymbol]
   );
 
+  const formatUserAmount = useCallback(
+    (amountInUserCurrency: number): string => {
+      if (!Number.isFinite(amountInUserCurrency)) return `${currencySymbol} 0`;
+      const formatted = new Intl.NumberFormat("en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(amountInUserCurrency);
+      return `${currencySymbol} ${formatted}`;
+    },
+    [currencySymbol]
+  );
+
+  const convertUSDToPaystackCurrency = useCallback(
+    (amountInUSD: number, target: PaystackChargeCurrency): number => {
+      if (!Number.isFinite(amountInUSD)) return 0;
+      const rate = STATIC_RATES_USD_TO[target] ?? 1;
+      return amountInUSD * rate;
+    },
+    []
+  );
+
   const value: BusinessCurrencyContextType = {
     selectedCurrency,
     currencySymbol,
     formatFromUSD,
     convertFromUSD,
+    userAmountToUSD,
+    formatUserAmount,
+    convertUSDToPaystackCurrency,
     setSelectedCurrency,
     userCountry,
   };

@@ -67,14 +67,13 @@ const FinancePage: React.FC = () => {
   // Top-up form
   const [topUpAmount, setTopUpAmount] = useState('')
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'paystack' | null>(null)
-  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'KES' | 'NGN'>('USD')
+  const [selectedCurrency, setSelectedCurrency] = useState<'USD' | 'KES'>('USD')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const USD_TO_NGN = 1600
   const USD_TO_KES = 130
 
   useEffect(() => {
     if (selectedPaymentMethod === 'paystack') {
-      setSelectedCurrency(userCurrency === 'KES' ? 'KES' : userCurrency === 'NGN' ? 'NGN' : 'USD')
+      setSelectedCurrency(userCurrency === 'KES' ? 'KES' : 'USD')
     }
   }, [userCurrency, selectedPaymentMethod])
 
@@ -172,8 +171,6 @@ const FinancePage: React.FC = () => {
       let amountInUSD = amountVal
       if (selectedCurrency === 'KES') {
         amountInUSD = amountVal / USD_TO_KES
-      } else if (selectedCurrency === 'NGN') {
-        amountInUSD = amountVal / USD_TO_NGN
       }
 
       const { getCurrentUser } = await import('@/services/auth')
@@ -202,7 +199,7 @@ const FinancePage: React.FC = () => {
           setIsSubmitting(false)
         }
       } else {
-        const paymentAmount = selectedCurrency === 'KES' ? amountInUSD * USD_TO_KES : selectedCurrency === 'NGN' ? amountInUSD * USD_TO_NGN : amountInUSD
+        const paymentAmount = selectedCurrency === 'KES' ? amountInUSD * USD_TO_KES : amountInUSD
         const data = await createPaystackSession({
           email: user.email,
           amount: paymentAmount,
@@ -847,7 +844,7 @@ const FinancePage: React.FC = () => {
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">
-                        {selectedCurrency === 'KES' ? 'KSh' : selectedCurrency === 'NGN' ? '₦' : '$'}
+                        {selectedCurrency === 'KES' ? 'KSh' : '$'}
                       </span>
                       <input
                         type="number"
@@ -861,7 +858,7 @@ const FinancePage: React.FC = () => {
                     </div>
                     {/* Quick amount buttons */}
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {(selectedCurrency === 'KES' ? ['500', '1000', '2000', '5000'] : selectedCurrency === 'NGN' ? ['5000', '10000', '20000', '50000'] : ['10', '25', '50', '100']).map((amt) => (
+                      {(selectedCurrency === 'KES' ? ['500', '1000', '2000', '5000'] : ['10', '25', '50', '100']).map((amt) => (
                         <button
                           key={amt}
                           onClick={() => setTopUpAmount(amt)}
@@ -871,7 +868,7 @@ const FinancePage: React.FC = () => {
                               : 'border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'
                           }`}
                         >
-                          {selectedCurrency === 'KES' ? `KSh ${amt}` : selectedCurrency === 'NGN' ? `₦${amt}` : `$${amt}`}
+                          {selectedCurrency === 'KES' ? `KSh ${amt}` : `$${amt}`}
                         </button>
                       ))}
                     </div>
@@ -885,7 +882,7 @@ const FinancePage: React.FC = () => {
                     <div className="bus-responsive-two-col gap-3">
                       {[
                         { id: 'stripe' as const, name: 'Stripe', sub: 'USD only', icon: '💳' },
-                        { id: 'paystack' as const, name: 'Paystack', sub: selectedCurrency || (userCurrency === 'KES' ? 'KES' : userCurrency === 'NGN' ? 'NGN' : 'USD'), icon: '🌍' },
+                        { id: 'paystack' as const, name: 'Paystack', sub: selectedCurrency || (userCurrency === 'KES' ? 'KES' : 'USD'), icon: '🌍' },
                       ].map((pm) => (
                         <button
                           key={pm.id}
@@ -893,7 +890,7 @@ const FinancePage: React.FC = () => {
                           onClick={() => {
                             setSelectedPaymentMethod(pm.id)
                             if (pm.id === 'stripe') setSelectedCurrency('USD')
-                            else setSelectedCurrency(userCurrency === 'KES' ? 'KES' : userCurrency === 'NGN' ? 'NGN' : 'USD')
+                            else setSelectedCurrency(userCurrency === 'KES' ? 'KES' : 'USD')
                           }}
                           className={`p-4 border-2 rounded-xl transition-all text-left ${
                             selectedPaymentMethod === pm.id
@@ -915,12 +912,11 @@ const FinancePage: React.FC = () => {
                       <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Currency</label>
                       <select
                         value={selectedCurrency}
-                        onChange={(e) => setSelectedCurrency(e.target.value as 'USD' | 'KES' | 'NGN')}
+                        onChange={(e) => setSelectedCurrency(e.target.value as 'USD' | 'KES')}
                         className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                       >
                         <option value="USD">USD – US Dollar</option>
                         <option value="KES">KES – Kenyan Shilling</option>
-                        <option value="NGN">NGN – Nigerian Naira</option>
                       </select>
                     </div>
                   )}
@@ -936,7 +932,7 @@ const FinancePage: React.FC = () => {
                       </>
                     ) : (
                       <>
-                        <FaPlus className="h-4 w-4" /> Add {topUpAmount ? `${selectedCurrency === 'KES' ? 'KSh' : selectedCurrency === 'NGN' ? '₦' : '$'}${topUpAmount}` : 'Funds'}
+                        <FaPlus className="h-4 w-4" /> Add {topUpAmount ? `${selectedCurrency === 'KES' ? 'KSh' : '$'}${topUpAmount}` : 'Funds'}
                       </>
                     )}
                   </button>

@@ -56,14 +56,12 @@ const CampaignSummary: React.FC<CampaignSummaryProps> = ({
   isPublic = true,
   audienceTargeting,
 }) => {
-  const { formatPrice, selectedCurrency: userCurrency } = useCurrency()
-  const USD_TO_KES_RATE = 130
-  
+  const { formatUserAmount } = useCurrency()
+
   const formatCurrency = (amount: string | number) => {
     const num = typeof amount === 'string' ? parseFloat(amount) : amount
-    if (isNaN(num)) return formatPrice(0)
-    const amountInKES = userCurrency === 'KES' ? num : num * USD_TO_KES_RATE
-    return formatPrice(amountInKES)
+    if (isNaN(num)) return formatUserAmount(0)
+    return formatUserAmount(num)
   }
 
   const formatDate = (dateString: string) => {
@@ -232,7 +230,7 @@ const CampaignSummary: React.FC<CampaignSummaryProps> = ({
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
                   Commission: {product.commissionType === 'PERCENTAGE' 
                     ? `${product.commissionRate || 0}%`
-                    : formatPrice(product.commissionAmount || 0)}
+                    : formatUserAmount(product.commissionAmount || 0)}
                 </p>
               </div>
             ))}
