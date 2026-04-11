@@ -4,7 +4,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FaCheck, FaCopy, FaPaperPlane, FaRobot, FaSpinner, FaTimes } from "react-icons/fa";
+import {
+  FaCheck,
+  FaCopy,
+  FaPaperPlane,
+  FaRobot,
+  FaSpinner,
+  FaTimes,
+  FaTrashAlt,
+} from "react-icons/fa";
 import toast from "react-hot-toast";
 import { askAssistant, type AssistantMessage } from "@/services/assistant";
 import { matchBusinessAssistantScreen } from "@/lib/assistantRegistry";
@@ -65,7 +73,8 @@ const overlayAsideClass =
 const BusinessAssistantPanel: React.FC<BusinessAssistantPanelProps> = ({
   onClose,
 }) => {
-  const { messages, setMessages, routeHandledPathRef } = useBusinessAssistant();
+  const { messages, setMessages, routeHandledPathRef, clearAssistantThread } =
+    useBusinessAssistant();
   const router = useRouter();
   const pathname = router.pathname ?? "";
   const asPath = router.asPath ?? pathname;
@@ -354,6 +363,14 @@ const BusinessAssistantPanel: React.FC<BusinessAssistantPanelProps> = ({
 
   const hasUserMessage = messages.some((m) => m.role === "user");
   const showSuggestionChips = !isSending && !hasUserMessage;
+
+  const handleClearChat = useCallback(() => {
+    if (isSending) return;
+    clearAssistantThread();
+    setInput("");
+    setPipelineLog([]);
+    toast.success("Chat cleared");
+  }, [clearAssistantThread, isSending]);
   const suggestedQuestionsTwo = useMemo(
     () => screen.suggestedQuestions.slice(0, MAX_SUGGESTED_QUESTIONS),
     [screen.suggestedQuestions]
@@ -402,14 +419,26 @@ const BusinessAssistantPanel: React.FC<BusinessAssistantPanelProps> = ({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
-            onClick={onClose}
-            aria-label="Close assistant"
-          >
-            <FaTimes className="h-3.5 w-3.5" />
-          </button>
+          <div className="flex flex-shrink-0 items-center gap-0.5">
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-amber-600 dark:hover:bg-white/10 dark:hover:text-amber-400 disabled:pointer-events-none disabled:opacity-40"
+              onClick={handleClearChat}
+              disabled={isSending}
+              title="Clear chat"
+              aria-label="Clear chat"
+            >
+              <FaTrashAlt className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              className="flex h-8 w-8 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-white"
+              onClick={onClose}
+              aria-label="Close assistant"
+            >
+              <FaTimes className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-50 dark:bg-slate-900/50">

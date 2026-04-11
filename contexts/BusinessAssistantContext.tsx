@@ -20,6 +20,8 @@ type BusinessAssistantContextValue = {
   setMessages: React.Dispatch<React.SetStateAction<BusinessAssistantChatMessage[]>>;
   /** Last route template we synced for welcome / “you’re now on…” messages — lives for the session */
   routeHandledPathRef: React.MutableRefObject<string | null>;
+  /** Clears the thread and route-sync ref; keeps the panel open (fresh welcome on next effect). */
+  clearAssistantThread: () => void;
   resetAssistantSession: () => void;
 };
 
@@ -29,6 +31,11 @@ export function BusinessAssistantProvider({ children }: { children: ReactNode })
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
   const [messages, setMessages] = useState<BusinessAssistantChatMessage[]>([]);
   const routeHandledPathRef = useRef<string | null>(null);
+
+  const clearAssistantThread = useCallback(() => {
+    setMessages([]);
+    routeHandledPathRef.current = null;
+  }, []);
 
   const resetAssistantSession = useCallback(() => {
     setMessages([]);
@@ -43,9 +50,10 @@ export function BusinessAssistantProvider({ children }: { children: ReactNode })
       messages,
       setMessages,
       routeHandledPathRef,
+      clearAssistantThread,
       resetAssistantSession,
     }),
-    [aiAssistantOpen, messages, resetAssistantSession]
+    [aiAssistantOpen, clearAssistantThread, messages, resetAssistantSession]
   );
 
   return (
