@@ -35,12 +35,6 @@ export interface AssistantRequestBody {
   context: AssistantContextPayload;
 }
 
-/** Pre-completed tool outputs from the API (e.g. vendor_workspace_snapshot). Merge before client-only tools. */
-export interface AssistantServerToolResult {
-  tool_call_id: string;
-  content: string;
-}
-
 export interface AssistantResponseBody {
   message: {
     role: AssistantRole;
@@ -48,8 +42,6 @@ export interface AssistantResponseBody {
     tool_calls?: AssistantToolCall[];
     tool_call_id?: string;
   };
-  /** Present when the API ran server-side data tools in the same turn as client tools. */
-  serverToolResults?: AssistantServerToolResult[];
 }
 
 export const askAssistant = async (

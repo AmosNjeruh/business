@@ -8,7 +8,6 @@ import toast from "react-hot-toast";
 import { askAssistant, type AssistantMessage } from "@/services/assistant";
 import { matchBusinessAssistantScreen } from "@/lib/assistantRegistry";
 import { runBusinessNavigateTool } from "@/lib/businessAssistantNavigate";
-import { assistantDashboardArea } from "@/lib/assistantDashboardArea";
 
 /** Align with Tailwind `lg` — dock as a real flex column at this width and up */
 const DOCK_MIN_WIDTH_PX = 1024;
@@ -72,7 +71,6 @@ const BusinessAssistantPanel: React.FC<BusinessAssistantPanelProps> = ({
     const m: Record<string, unknown> = {
       businessScreen: screen.title,
       routeTemplate: pathname,
-      dashboardArea: assistantDashboardArea(pathname),
     };
     const id = router.query["id"];
     if (typeof id === "string" && id) {
@@ -195,20 +193,7 @@ const BusinessAssistantPanel: React.FC<BusinessAssistantPanelProps> = ({
               },
             ];
 
-            const serverById = new Map(
-              (res.serverToolResults ?? []).map((r) => [r.tool_call_id, r.content])
-            );
-
             for (const tc of msg.tool_calls) {
-              const pre = serverById.get(tc.id);
-              if (pre !== undefined) {
-                apiMessages.push({
-                  role: "tool",
-                  tool_call_id: tc.id,
-                  content: pre,
-                });
-                continue;
-              }
               if (tc.function.name === "business_navigate") {
                 const result = await runBusinessNavigateTool(
                   router,

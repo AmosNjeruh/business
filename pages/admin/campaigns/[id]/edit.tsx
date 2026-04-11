@@ -31,20 +31,14 @@ const PAY_STRUCTURES: { value: PayStructure; label: string; desc: string }[] = [
   { value: "COMMISSION_PER_SALE", label: "Commission on Sales", desc: "Percentage or fixed commission on each sale" },
 ];
 
-type CampaignSocialPlatformOption = {
-  value: string;
-  label: string;
-  manual?: boolean;
-};
-
-const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS: CampaignSocialPlatformOption[] = [
-  { value: "instagram", label: "Instagram" },
-  { value: "facebook", label: "Facebook" },
-  { value: "tiktok", label: "TikTok" },
-  { value: "youtube", label: "YouTube" },
-  { value: "x", label: "Twitter/X", manual: true },
-  { value: "linkedin", label: "LinkedIn" },
-];
+const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS = [
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'tiktok', label: 'TikTok' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'x', label: 'Twitter/X', manual: true },
+  { value: 'linkedin', label: 'LinkedIn' },
+] as const;
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
