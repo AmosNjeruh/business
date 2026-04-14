@@ -10,6 +10,8 @@ interface PaymentMethodSelectorProps {
   selectedCurrency?: 'USD' | 'KES'
   onSelectCurrency?: (currency: 'USD' | 'KES') => void
   amountInUSD: number
+  /** Overrides the default helper line under the title */
+  helperText?: string
 }
 
 const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
@@ -18,6 +20,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   selectedCurrency = 'USD',
   onSelectCurrency,
   amountInUSD,
+  helperText = 'Choose your preferred payment method to complete the campaign creation',
 }) => {
   const { formatFromUSD, convertUSDToPaystackCurrency } = useCurrency()
 
@@ -44,7 +47,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         Select Payment Method
       </h3>
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">
-        Choose your preferred payment method to complete the campaign creation
+        {helperText}
       </p>
 
       <div className="bus-responsive-two-col gap-4">

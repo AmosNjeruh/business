@@ -384,6 +384,8 @@ export interface CreateCheckoutSessionData {
   vendorId: string;
   vendorName?: string;
   type?: string;
+  /** Vendor Premium checkout (server-priced USD) */
+  premiumPlan?: 'monthly' | 'annual';
 }
 
 export const createStripeCheckoutSession = async (data: CreateCheckoutSessionData) => {
@@ -391,6 +393,26 @@ export const createStripeCheckoutSession = async (data: CreateCheckoutSessionDat
     ...data,
     source: 'business', // Indicate this is from business suite
   });
+  return response.data.data;
+};
+
+/** After successful Stripe/Paystack redirect, confirm payment and set Vendor Premium. */
+export const activateVendorPremium = async (data: {
+  paymentMethod: 'stripe' | 'paystack';
+  sessionId?: string;
+  reference?: string;
+}) => {
+  const response = await Api.post<{ data: { isPremium: boolean; premiumExpiresAt: string | null } }>(
+    '/vendor/settings/premium/activate',
+    data
+  );
+  return response.data.data;
+};
+
+export const getVendorPremiumPricing = async () => {
+  const response = await Api.get<{ data: { monthlyUsd: number; annualUsd: number; monthlyDays: number; annualDays: number } }>(
+    '/vendor/settings/premium/pricing'
+  );
   return response.data.data;
 };
 
@@ -1249,6 +1271,8 @@ export default {
   cancelInvitation,
   createStripeCheckoutSession,
   createPaystackSession,
+  activateVendorPremium,
+  getVendorPremiumPricing,
   // Influencer discovery
   getInfluencers,
   getInfluencer,

@@ -6,25 +6,35 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import toast from "react-hot-toast";
 import AdminLayout from "@/components/admin/Layout";
-import { getVendorProfile, updateVendorProfile } from "@/services/vendor";
+import {
+  getVendorProfile,
+  updateVendorProfile,
+  createStripeCheckoutSession,
+  createPaystackSession,
+  getVendorPremiumPricing,
+} from "@/services/vendor";
 import { getCurrentUser } from "@/services/auth";
 import {
   FaUser, FaBuilding, FaLock, FaBell, FaExclamationTriangle,
   FaSpinner, FaSave, FaCheck, FaEye, FaEyeSlash, FaKey,
-  FaShieldAlt, FaGlobe,
+  FaShieldAlt, FaGlobe, FaCrown, FaRobot, FaEnvelope,
 } from "react-icons/fa";
 import Link from "next/link";
 import { useCurrency } from "@/hooks/useCurrency";
+import { useBrand } from "@/contexts/BrandContext";
+import PaymentMethodSelector from "@/components/admin/campaigns/PaymentMethodSelector";
 
-type Tab = "profile" | "agency" | "security" | "notifications" | "currency" | "danger";
+type Tab = "profile" | "agency" | "security" | "notifications" | "currency" | "premium" | "danger";
 
 const TABS: { key: Tab; label: string; icon: React.ElementType }[] = [
   { key: "profile", label: "Profile", icon: FaUser },
   { key: "agency", label: "Agency", icon: FaBuilding },
-  { key: "security", label: "Security", icon: FaLock },
-  { key: "notifications", label: "Notifications", icon: FaBell },
+    { key: "premium", label: "Vendor Premium", icon: FaCrown },
+
+  // { key: "security", label: "Security", icon: FaLock },
+  // { key: "notifications", label: "Notifications", icon: FaBell },
   { key: "currency", label: "Currency", icon: FaGlobe },
-  { key: "danger", label: "Danger Zone", icon: FaExclamationTriangle },
+  // { key: "danger", label: "Danger Zone", icon: FaExclamationTriangle },
 ];
 
 const inputCls = "w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/15 transition-all";
@@ -43,9 +53,20 @@ function SaveButton({ isSaving, saved }: { isSaving: boolean; saved: boolean }) 
 const AdminSettingsPage: React.FC = () => {
   const router = useRouter();
   const { selectedCurrency, setSelectedCurrency, currencySymbol } = useCurrency();
+  const { selectedBrand } = useBrand();
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [profile, setProfile] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [vendorPremiumActive, setVendorPremiumActive] = useState(false);
+  const [premiumExpiresAt, setPremiumExpiresAt] = useState<string | null>(null);
+  const [premiumPlan, setPremiumPlan] = useState<"monthly" | "annual">("monthly");
+  const [premiumPayMethod, setPremiumPayMethod] = useState<"stripe" | "paystack" | null>(null);
+  const [premiumPayCurrency, setPremiumPayCurrency] = useState<"USD" | "KES">("USD");
+  const [isPayingPremium, setIsPayingPremium] = useState(false);
+  const [premiumPricing, setPremiumPricing] = useState({
+    monthlyUsd: 29,
+    annualUsd: 290,
+  });
 
   // Profile tab
   const [name, setName] = useState("");
@@ -87,10 +108,23 @@ const AdminSettingsPage: React.FC = () => {
   const [savedCurrency, setSavedCurrency] = useState(false);
 
   useEffect(() => {
+    if (!router.isReady) return;
+    if (router.query["premium"] === "1" || router.query["premium"] === "true") {
+      setActiveTab("premium");
+    }
+  }, [router.isReady, router.query]);
+
+  useEffect(() => {
     (async () => {
       try {
         const data = await getVendorProfile();
+        try {
+          const pricing = await getVendorPremiumPricing();
+          setPremiumPricing({ monthlyUsd: pricing.monthlyUsd, annualUsd: pricing.annualUsd });
+        } catch {}
         setProfile(data);
+        setVendorPremiumActive(!!data?.isPremium);
+        setPremiumExpiresAt(data?.premiumExpiresAt || null);
         setName(data.name || "");
         setEmail(data.email || "");
         setBio(data.bio || "");
@@ -112,6 +146,53 @@ const AdminSettingsPage: React.FC = () => {
       } finally { setIsLoading(false); }
     })();
   }, []);
+
+  const premiumAmountUsd =
+    premiumPlan === "annual" ? premiumPricing.annualUsd : premiumPricing.monthlyUsd;
+
+  const handleSubscribeVendorPremium = async () => {
+    const user = getCurrentUser();
+    const vendorId = selectedBrand?.id;
+    if (!user?.email || !vendorId) {
+      toast.error("Select a brand workspace and ensure you are signed in.");
+      return;
+    }
+    if (!premiumPayMethod) {
+      toast.error("Choose Stripe or Paystack.");
+      return;
+    }
+    setIsPayingPremium(true);
+    try {
+      if (premiumPayMethod === "stripe") {
+        const { url } = await createStripeCheckoutSession({
+          email: user.email,
+          amount: premiumAmountUsd,
+          vendorId,
+          vendorName: selectedBrand?.name,
+          type: "vendor_premium",
+          premiumPlan,
+        });
+        if (url) window.location.href = url;
+        else toast.error("Could not start Stripe checkout.");
+      } else {
+        const { authorization_url } = await createPaystackSession({
+          email: user.email,
+          amount: premiumAmountUsd,
+          vendorId,
+          vendorName: selectedBrand?.name,
+          type: "vendor_premium",
+          premiumPlan,
+          currency: premiumPayCurrency,
+        });
+        if (authorization_url) window.location.href = authorization_url;
+        else toast.error("Could not start Paystack checkout.");
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Checkout failed.");
+    } finally {
+      setIsPayingPremium(false);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -430,6 +511,107 @@ const AdminSettingsPage: React.FC = () => {
                     <SaveButton isSaving={isSavingNotif} saved={savedNotif} />
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* ── Vendor Premium ── */}
+            {activeTab === "premium" && (
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-amber-200/80 dark:border-amber-500/25 bg-gradient-to-br from-amber-50/90 via-white to-slate-50 dark:from-amber-500/10 dark:via-slate-900/80 dark:to-slate-900/80 p-6 shadow-sm">
+                  <div className="mb-4 flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-500/20 border border-amber-200 dark:border-amber-500/30">
+                      <FaCrown className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-sm font-bold text-slate-900 dark:text-white">Vendor Premium</h2>
+                      <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                        Unlock workspace email campaigns to partners and brands, plus the in-dashboard AI assistant. Billed in USD;
+                        renew anytime to extend your term.
+                      </p>
+                    </div>
+                  </div>
+                  {vendorPremiumActive ? (
+                    <div className="rounded-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-500/10 px-4 py-3 text-sm text-emerald-900 dark:text-emerald-100">
+                      <p className="font-semibold">Premium is active for this workspace.</p>
+                      {premiumExpiresAt && (
+                        <p className="mt-1 text-xs opacity-90">
+                          Current access through{" "}
+                          <span className="font-medium">{new Date(premiumExpiresAt).toLocaleString()}</span>
+                          .
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <p className="mb-3 text-xs font-medium text-slate-700 dark:text-slate-300">Choose a plan</p>
+                      <div className="bus-responsive-two-col mb-6 gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setPremiumPlan("monthly")}
+                          className={`rounded-xl border-2 p-4 text-left transition-all ${
+                            premiumPlan === "monthly"
+                              ? "border-emerald-400 bg-emerald-50/80 dark:bg-emerald-500/15"
+                              : "border-slate-200 dark:border-white/10 hover:border-emerald-300"
+                          }`}
+                        >
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">Monthly</p>
+                          <p className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                            ${premiumPricing.monthlyUsd.toFixed(0)}
+                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400"> / mo</span>
+                          </p>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPremiumPlan("annual")}
+                          className={`rounded-xl border-2 p-4 text-left transition-all ${
+                            premiumPlan === "annual"
+                              ? "border-emerald-400 bg-emerald-50/80 dark:bg-emerald-500/15"
+                              : "border-slate-200 dark:border-white/10 hover:border-emerald-300"
+                          }`}
+                        >
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">Annual</p>
+                          <p className="mt-1 text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                            ${premiumPricing.annualUsd.toFixed(0)}
+                            <span className="text-xs font-normal text-slate-500 dark:text-slate-400"> / yr</span>
+                          </p>
+                          <p className="mt-1 text-[10px] text-amber-700 dark:text-amber-400/90">Best value</p>
+                        </button>
+                      </div>
+                      <div className="mb-2 flex flex-wrap gap-4 text-xs text-slate-600 dark:text-slate-400">
+                        <span className="flex items-center gap-1.5">
+                          <FaEnvelope className="text-emerald-500" /> Partner & brand email tools
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <FaRobot className="text-emerald-500" /> AI assistant in the suite
+                        </span>
+                      </div>
+                      <PaymentMethodSelector
+                        selectedMethod={premiumPayMethod}
+                        onSelectMethod={setPremiumPayMethod}
+                        selectedCurrency={premiumPayCurrency}
+                        onSelectCurrency={setPremiumPayCurrency}
+                        amountInUSD={premiumAmountUsd}
+                        helperText="Pay with Stripe or Paystack to activate Vendor Premium for this workspace."
+                      />
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          disabled={isPayingPremium || !premiumPayMethod}
+                          onClick={handleSubscribeVendorPremium}
+                          className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 px-6 py-2.5 text-sm font-bold text-white shadow-md transition-all hover:opacity-95 disabled:opacity-50"
+                        >
+                          {isPayingPremium ? <FaSpinner className="h-4 w-4 animate-spin" /> : <FaCrown className="h-4 w-4" />}
+                          {isPayingPremium ? "Redirecting…" : "Pay with selected method"}
+                        </button>
+                      </div>
+                      <p className="mt-3 text-[10px] text-slate-500 dark:text-slate-500">
+                        Stripe checkout is in USD. Paystack for this product is charged in USD. Prices are set on the server; use{" "}
+                        <code className="rounded bg-slate-100 px-1 dark:bg-white/10">VENDOR_PREMIUM_*</code> env vars to align with{" "}
+                        <code className="rounded bg-slate-100 px-1 dark:bg-white/10">NEXT_PUBLIC_VENDOR_PREMIUM_*</code> in this app.
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             )}
 

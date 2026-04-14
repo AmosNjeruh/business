@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import AdminLayout from '@/components/admin/Layout'
-import { getVendorEmailRecipients, sendVendorEmails } from '@/services/vendor'
+import { getVendorEmailRecipients, sendVendorEmails, getVendorProfile } from '@/services/vendor'
 import {
   FaEnvelope,
   FaUsers,
@@ -15,6 +15,7 @@ import {
   FaInbox,
   FaTag,
   FaSpinner,
+  FaCrown,
 } from 'react-icons/fa'
 import toast from 'react-hot-toast'
 import Image from 'next/image'
@@ -35,9 +36,26 @@ const VendorEmailsPage: React.FC = () => {
   const [message, setMessage] = useState('')
   const [isHtmlMode, setIsHtmlMode] = useState(false)
   const [previewMode, setPreviewMode] = useState(false)
+  const [premiumOk, setPremiumOk] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const s = await getVendorProfile()
+        if (!cancelled) setPremiumOk(!!s?.isPremium)
+      } catch {
+        if (!cancelled) setPremiumOk(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Fetch recipients on component mount and when filters change
   const fetchRecipients = useCallback(async () => {
+    if (!premiumOk) return
     setLoading(true)
     try {
       const params: any = {
@@ -56,7 +74,7 @@ const VendorEmailsPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [recipientType, debouncedSearchQuery])
+  }, [recipientType, debouncedSearchQuery, premiumOk])
 
   // Debounce search query
   useEffect(() => {
@@ -74,8 +92,8 @@ const VendorEmailsPage: React.FC = () => {
   }, [searchQuery])
 
   useEffect(() => {
-    fetchRecipients()
-  }, [fetchRecipients])
+    if (premiumOk) fetchRecipients()
+  }, [fetchRecipients, premiumOk])
 
   // Filter recipients based on search query (client-side filtering for instant feedback)
   const filteredRecipients = recipients.filter((recipient) => {
@@ -260,6 +278,39 @@ const VendorEmailsPage: React.FC = () => {
     setSelectedRecipients([])
     setSelectAll(false)
   }, [recipientType])
+
+  if (premiumOk === null) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center items-center h-64">
+          <FaSpinner className="h-10 w-10 animate-spin text-emerald-500" />
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (!premiumOk) {
+    return (
+      <AdminLayout>
+        <div className="mx-auto flex max-w-lg flex-col items-center justify-center px-4 py-20 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-500/20">
+            <FaCrown className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Vendor Premium</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Workspace email tools are included with Vendor Premium. Subscribe once to unlock sending to partners and brands.
+          </p>
+          <Link
+            href="/admin/settings?premium=1"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-md hover:opacity-95"
+          >
+            <FaCrown className="h-4 w-4" />
+            View plans in Settings
+          </Link>
+        </div>
+      </AdminLayout>
+    )
+  }
 
   if (loading) {
     return (

@@ -31,7 +31,13 @@ import { getCurrentUser, logout } from "@/services/auth";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBrand } from "@/contexts/BrandContext";
 import { useBusinessAssistant } from "@/contexts/BusinessAssistantContext";
-import { getNotifications, getUnreadNotificationCount, markNotificationRead, markAllNotificationsRead } from "@/services/vendor";
+import {
+  getNotifications,
+  getUnreadNotificationCount,
+  markNotificationRead,
+  markAllNotificationsRead,
+  getVendorProfile,
+} from "@/services/vendor";
 import toast from "react-hot-toast";
 
 interface HeaderProps {
@@ -46,6 +52,7 @@ const Header: React.FC<HeaderProps> = ({
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const { brands, selectedBrand, setSelectedBrand, isLoading: brandsLoading } = useBrand();
+  const [vendorPremium, setVendorPremium] = useState(false);
   const {
     aiAssistantOpen,
     setAiAssistantOpen,
@@ -100,6 +107,21 @@ const Header: React.FC<HeaderProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [showSearch]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const s = await getVendorProfile();
+        if (!cancelled) setVendorPremium(!!s?.isPremium);
+      } catch {
+        if (!cancelled) setVendorPremium(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBrand?.id]);
 
   useEffect(() => {
     if (showNotifications) {
@@ -319,9 +341,28 @@ const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-1 sm:gap-1.5">
           <button
             type="button"
-            onClick={() => setAiAssistantOpen((o) => !o)}
-            title={aiAssistantOpen ? "Close AI assistant" : "Open AI assistant"}
-            aria-label={aiAssistantOpen ? "Close AI assistant" : "Open AI assistant"}
+            onClick={() => {
+              if (!vendorPremium) {
+                toast.error("Vendor Premium unlocks the AI assistant. Open Settings → Vendor Premium.");
+                router.push("/admin/settings?premium=1");
+                return;
+              }
+              setAiAssistantOpen((o) => !o);
+            }}
+            title={
+              vendorPremium
+                ? aiAssistantOpen
+                  ? "Close AI assistant"
+                  : "Open AI assistant"
+                : "Vendor Premium required — open settings"
+            }
+            aria-label={
+              vendorPremium
+                ? aiAssistantOpen
+                  ? "Close AI assistant"
+                  : "Open AI assistant"
+                : "Vendor Premium required for AI assistant"
+            }
             aria-pressed={aiAssistantOpen}
             className={`relative p-2 rounded-lg transition-colors ${
               aiAssistantOpen

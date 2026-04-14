@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import AdminLayout from '@/components/admin/Layout'
-import { getVendorEmailHistory } from '@/services/vendor'
+import { getVendorEmailHistory, getVendorProfile } from '@/services/vendor'
 import {
   FaEnvelope,
   FaUsers,
@@ -19,10 +19,13 @@ import {
   FaChevronRight,
   FaEyeSlash,
   FaExpand,
+  FaCrown,
+  FaSpinner,
 } from 'react-icons/fa'
 import toast from 'react-hot-toast'
 
 const VendorEmailHistoryPage: React.FC = () => {
+  const [premiumOk, setPremiumOk] = useState<boolean | null>(null)
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -35,6 +38,21 @@ const VendorEmailHistoryPage: React.FC = () => {
   const [showContentModal, setShowContentModal] = useState(false)
   const [selectedCampaign, setSelectedCampaign] = useState<any>(null)
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const s = await getVendorProfile()
+        if (!cancelled) setPremiumOk(!!s?.isPremium)
+      } catch {
+        if (!cancelled) setPremiumOk(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -46,6 +64,7 @@ const VendorEmailHistoryPage: React.FC = () => {
 
   // Fetch email campaigns
   const fetchCampaigns = useCallback(async () => {
+    if (!premiumOk) return
     setLoading(true)
     try {
       const params: any = {
@@ -76,11 +95,11 @@ const VendorEmailHistoryPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }, [currentPage, debouncedSearchQuery, statusFilter])
+  }, [currentPage, debouncedSearchQuery, statusFilter, premiumOk])
 
   useEffect(() => {
-    fetchCampaigns()
-  }, [fetchCampaigns])
+    if (premiumOk) fetchCampaigns()
+  }, [fetchCampaigns, premiumOk])
 
   // Handle search
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,6 +166,39 @@ const VendorEmailHistoryPage: React.FC = () => {
     } else {
       return content.replace(/\n/g, '<br>')
     }
+  }
+
+  if (premiumOk === null) {
+    return (
+      <AdminLayout>
+        <div className="flex h-64 items-center justify-center">
+          <FaSpinner className="h-10 w-10 animate-spin text-emerald-500" />
+        </div>
+      </AdminLayout>
+    )
+  }
+
+  if (!premiumOk) {
+    return (
+      <AdminLayout>
+        <div className="mx-auto flex max-w-lg flex-col items-center justify-center px-4 py-20 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-500/20">
+            <FaCrown className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Vendor Premium</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Email history is available with Vendor Premium.
+          </p>
+          <Link
+            href="/admin/settings?premium=1"
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-emerald-500 px-6 py-3 text-sm font-bold text-white shadow-md hover:opacity-95"
+          >
+            <FaCrown className="h-4 w-4" />
+            View plans in Settings
+          </Link>
+        </div>
+      </AdminLayout>
+    )
   }
 
   if (loading) {

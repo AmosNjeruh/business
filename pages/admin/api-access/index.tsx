@@ -206,7 +206,6 @@ export default function ApiAccessPage() {
       const res = await getApiKeys();
       setApiKeys(res.data || []);
     } catch {
-      // API keys feature might not be live yet – silently degrade
       setApiKeys([]);
     } finally {
       setIsLoadingKeys(false);
