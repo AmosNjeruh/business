@@ -27,6 +27,7 @@ export interface AuthResponse {
     partnerSlug?: string | null;
     verified: boolean;
     vendorSettings?: any;
+    userTypePreference?: "VENDOR" | "AGENT" | null;
   };
   token: string;
   isNewUser?: boolean;
@@ -44,6 +45,18 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
 
 export const googleAuth = async (data: GoogleAuthData): Promise<AuthResponse> => {
   const response = await Api.post<{ data: AuthResponse }>('/auth/google', data);
+  return response.data.data;
+};
+
+export const checkAuth = async (): Promise<{ user: any }> => {
+  const response = await Api.get<{ data: { user: any } }>('/auth/check');
+  return response.data.data;
+};
+
+export const setUserTypePreference = async (userTypePreference: "VENDOR" | "AGENT") => {
+  const response = await Api.put<{ data: { user: any } }>('/auth/user-type-preference', {
+    userTypePreference,
+  });
   return response.data.data;
 };
 
@@ -137,6 +150,8 @@ export default {
   register,
   login,
   googleAuth,
+  checkAuth,
+  setUserTypePreference,
   sendLoginOtp,
   verifyLoginOtp,
   setToken,

@@ -7,7 +7,7 @@ import Header from "./Header";
 import SideBar from "./SideBar";
 import BusinessAssistantPanel from "./BusinessAssistantPanel";
 import { useBusinessAssistant } from "@/contexts/BusinessAssistantContext";
-import { getCurrentUser } from "@/services/auth";
+import { checkAuth, getCurrentUser, setUser, setUserTypePreference } from "@/services/auth";
 import { getVendorProfile } from "@/services/vendor";
 import { getPremiumRuleForPath, type PremiumPageRule } from "@/config/premiumPages";
 import toast from "react-hot-toast";
@@ -24,6 +24,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [premiumRule, setPremiumRule] = useState<PremiumPageRule | null>(null);
   const { aiAssistantOpen, setAiAssistantOpen } = useBusinessAssistant();
   const assistantResizeSkipFirst = useRef(true);
+  const [showAgentPrompt, setShowAgentPrompt] = useState(false);
+  const [agentPromptSaving, setAgentPromptSaving] = useState(false);
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -34,6 +36,46 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     }
     setIsLoading(false);
   }, [router]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const maybePrompt = async () => {
+      const user = getCurrentUser();
+      if (!user || String(user.role) !== "VENDOR") return;
+      const key = `t360:agentPrompted:${user.id}`;
+      if (window.localStorage.getItem(key) === "1") return;
+      try {
+        const fresh = await checkAuth();
+        if (cancelled) return;
+        if (fresh?.user) setUser(fresh.user);
+        setShowAgentPrompt(true);
+      } catch {
+        setShowAgentPrompt(true);
+      }
+    };
+    maybePrompt();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const decideAgent = async (pref: "VENDOR" | "AGENT") => {
+    const user = getCurrentUser();
+    if (!user) return;
+    const key = `t360:agentPrompted:${user.id}`;
+    try {
+      setAgentPromptSaving(true);
+      const res = await setUserTypePreference(pref);
+      if (res?.user) setUser(res.user);
+      window.localStorage.setItem(key, "1");
+      setShowAgentPrompt(false);
+      toast.success("Saved");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to save preference");
+    } finally {
+      setAgentPromptSaving(false);
+    }
+  };
 
   useEffect(() => {
     setPremiumRule(getPremiumRuleForPath(router.pathname));
@@ -133,6 +175,35 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
       />
+      {showAgentPrompt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 p-6 shadow-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+              Agents Cabin
+            </p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mt-1">Are you an Agent?</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              This only affects Hiring Experts features. It does not change your role.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => decideAgent("VENDOR")}
+                disabled={agentPromptSaving}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10 disabled:opacity-60"
+              >
+                No
+              </button>
+              <button
+                onClick={() => decideAgent("AGENT")}
+                disabled={agentPromptSaving}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 text-slate-950 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+              >
+                Yes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/*
         Absolute inset (below fixed header, right of sidebar on sm+) gives a definite height so
         <main> overflow-y-auto works. Flex + fixed siblings was collapsing / growing with content.

@@ -102,12 +102,14 @@ export default function AdminAuthPage() {
     }
 
     try {
+      const isAgent = window.confirm("Are you an Agent?");
       // Step 1: Register the user
       const auth = await register({
         email: regEmail,
         password: regPassword,
         name: regName,
         role: "VENDOR",
+        ...(isAgent ? { userTypePreference: "AGENT" } : {}),
       });
       setToken(auth.token);
       setUser(auth.user);

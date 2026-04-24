@@ -20,6 +20,7 @@ import {
   FaUserShield,
   FaWallet,
   FaPaperPlane,
+  FaRocket,
 } from "react-icons/fa";
 
 interface SideBarProps {
@@ -74,6 +75,12 @@ const navGroups = [
     label: "Developer",
     items: [
       { href: "/admin/api-access", label: "API Access", icon: FaCode },
+    ],
+  },
+  {
+    label: "Trend360 Turbo",
+    items: [
+      { href: "/admin/agents-cabin", label: "Agents Cabin", icon: FaRocket },
     ],
   },
   {
