@@ -1,15 +1,17 @@
 // Vendor Create Challenge Page
 // Single-page with collapsible accordion sections + summary/payment step
 
-import React, { useState, useRef, useCallback, useEffect } from 'react'
+import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '@/components/admin/Layout'
 import AudienceTargetingForm from '@/components/admin/campaigns/AudienceTargetingForm'
 import {
   vendorCreateChallenge,
+  vendorAnalyzeChallengeDraft,
   type ChallengeMetricType,
   type PrizeStructure,
   type CreateChallengePayload,
+  type ChallengeDraftAnalysisResult,
 } from '@/services/challenges'
 import { createStripeCheckoutSession, createPaystackSession, getVendorBalance, getVendorProfile } from '@/services/vendor'
 import { getCurrentUser } from '@/services/auth'
@@ -35,6 +37,7 @@ import {
   FaShieldAlt,
   FaStar,
   FaChevronRight,
+  FaMagic,
 } from 'react-icons/fa'
 import { MdAutoGraph, MdEmojiEvents, MdGroup } from 'react-icons/md'
 import { SiStripe } from 'react-icons/si'
@@ -954,6 +957,11 @@ const CreateChallengePage: React.FC = () => {
   const [audienceTargeting, setAudienceTargeting] = useState<{
     locations?: { lat?: number; lng?: number; radius?: number; address: string; type?: 'text' | 'map' }[]
   } | null>(null)
+  const [aiReview, setAiReview] = useState<ChallengeDraftAnalysisResult | null>(null)
+  const [draftCheckLoading, setDraftCheckLoading] = useState(false)
+  const [assistantBackgroundBusy, setAssistantBackgroundBusy] = useState(false)
+  const draftAnalyzeBusyRef = useRef(false)
+  const lastSilentAnalyzeOkAt = useRef(0)
 
   useEffect(() => {
     // Load vendor balance
@@ -1074,6 +1082,68 @@ const CreateChallengePage: React.FC = () => {
     }
   }
 
+  const buildDraftForAnalysis = useCallback(
+    () => ({
+      ...buildPayload(),
+      localCurrency: userCurrency,
+    }),
+    [buildPayload, userCurrency]
+  )
+
+  const draftAnalyzeFingerprint = useMemo(
+    () => JSON.stringify(buildDraftForAnalysis()),
+    [buildDraftForAnalysis]
+  )
+
+  const runDraftCheck = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      const silent = !!opts?.silent
+      const hasMinimum =
+        form.title.trim().length > 1 ||
+        form.description.trim().length > 20 ||
+        form.prizeTiers.some((tier) => (parseFloat(tier.prizeAmount) || 0) > 0)
+      if (!hasMinimum) {
+        if (!silent) toast.error('Add a title, stronger description, or prize before analysis.')
+        return
+      }
+      if (draftAnalyzeBusyRef.current && silent) return
+      if (draftAnalyzeBusyRef.current && !silent) {
+        toast.error('Analysis is still running')
+        return
+      }
+      draftAnalyzeBusyRef.current = true
+      if (silent) setAssistantBackgroundBusy(true)
+      else setDraftCheckLoading(true)
+      try {
+        const result = await vendorAnalyzeChallengeDraft(buildDraftForAnalysis())
+        setAiReview(result)
+        if (silent) lastSilentAnalyzeOkAt.current = Date.now()
+      } catch (e: any) {
+        if (!silent) toast.error(e?.response?.data?.error || 'Could not analyze challenge draft.')
+      } finally {
+        draftAnalyzeBusyRef.current = false
+        if (silent) setAssistantBackgroundBusy(false)
+        else setDraftCheckLoading(false)
+      }
+    },
+    [buildDraftForAnalysis, form.description, form.prizeTiers, form.title]
+  )
+
+  useEffect(() => {
+    if (step !== 'form') return
+    const hasMinimum =
+      form.title.trim().length > 1 ||
+      form.description.trim().length > 20 ||
+      form.prizeTiers.some((tier) => (parseFloat(tier.prizeAmount) || 0) > 0)
+    if (!hasMinimum) return
+    const t = window.setTimeout(() => {
+      if (Date.now() - lastSilentAnalyzeOkAt.current < 50_000) return
+      if (draftAnalyzeBusyRef.current) return
+      void runDraftCheck({ silent: true })
+    }, 3200)
+    return () => window.clearTimeout(t)
+  }, [draftAnalyzeFingerprint, form.description, form.prizeTiers, form.title, runDraftCheck, step])
+
   const handlePay = async (method: PayMethod, currency: 'USD' | 'KES') => {
     if (!user?.id || !user?.email) { toast.error('Please log in'); return }
     await ensureAudienceLocationPreselected()
@@ -1178,6 +1248,7 @@ const CreateChallengePage: React.FC = () => {
   }
 
   const allRequiredDone = sectionComplete('basics', form) && sectionComplete('goal', form) && sectionComplete('prizes', form)
+  const draftAnalysisActive = draftCheckLoading || assistantBackgroundBusy
 
   return (
     <AdminLayout>
@@ -1206,6 +1277,17 @@ const CreateChallengePage: React.FC = () => {
                   <strong>Review & Pay</strong> to proceed.
                 </span>
               </div>
+              {aiReview && (
+                <div className="mb-6 rounded-xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/80 dark:bg-indigo-900/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700 dark:text-indigo-300 mb-1">
+                    Draft quality score
+                  </p>
+                  <p className="text-2xl font-extrabold text-slate-900 dark:text-white">{aiReview.overall.score}/100</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                    {aiReview.headline || 'AI analysis refreshed from your current challenge draft.'}
+                  </p>
+                </div>
+              )}
 
               {/* Two-column layout */}
               <div className="bus-responsive-two-col gap-4 sm:gap-6">
@@ -1238,6 +1320,31 @@ const CreateChallengePage: React.FC = () => {
                   />
 
                   <SummaryCard form={form} currencySymbol={currencySymbol} />
+
+                  <div className="rounded-xl border overflow-hidden bg-gradient-to-br from-indigo-50/90 via-white to-violet-50/50 dark:from-indigo-950/35 dark:via-slate-800 dark:to-violet-950/25 border-indigo-100 dark:border-indigo-900/60">
+                    <div className="p-4 flex items-start justify-between gap-3">
+                      <div className="flex gap-3 min-w-0">
+                        <div className="shrink-0 w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-300">
+                          <FaMagic size={16} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">Challenge AI analysis</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                            Auto-checks while you type, or run it now.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => void runDraftCheck()}
+                        disabled={draftAnalysisActive}
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed min-w-[8.5rem]"
+                      >
+                        {draftAnalysisActive ? <FaSpinner className="animate-spin" size={12} /> : <FaBolt size={12} />}
+                        {draftAnalysisActive ? 'Analyzing…' : 'Analyze draft'}
+                      </button>
+                    </div>
+                  </div>
 
                   <button type="button" onClick={handleReviewAndPay}
                     disabled={!allRequiredDone}

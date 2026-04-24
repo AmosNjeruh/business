@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useRouter } from 'next/router'
 import AdminLayout from '@/components/admin/Layout'
-import SocialEmbed from '@/components/admin/SocialEmbeds'
 import {
   vendorGetChallenge,
   vendorGetLeaderboard,
@@ -60,7 +59,6 @@ import {
   FaExclamationTriangle,
   FaTimesCircle,
   FaHourglass,
-  FaLink,
   FaImage,
   FaDownload,
   FaExternalLinkAlt,
@@ -208,7 +206,6 @@ const KpiCard: React.FC<{
 
 const VendorSubmissionCard: React.FC<{ sub: ChallengeSubmission }> = ({ sub }) => {
   const cfg = SUBMISSION_STATUS_CFG[sub.status] ?? SUBMISSION_STATUS_CFG['PENDING']
-  const [showEmbed, setShowEmbed] = useState(false)
 
   return (
     <div className={`rounded-2xl border overflow-hidden transition-shadow hover:shadow-md ${
@@ -247,15 +244,6 @@ const VendorSubmissionCard: React.FC<{ sub: ChallengeSubmission }> = ({ sub }) =
           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${cfg.color}`}>
             {cfg.icon} {cfg.label}
           </span>
-          {sub.postUrl && (
-            <button
-              type="button"
-              onClick={() => setShowEmbed(v => !v)}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-            >
-              {showEmbed ? 'Hide' : 'View post'}
-            </button>
-          )}
         </div>
       </div>
 
@@ -271,7 +259,7 @@ const VendorSubmissionCard: React.FC<{ sub: ChallengeSubmission }> = ({ sub }) =
         )}
 
         {/* Post URL */}
-        {sub.postUrl && !showEmbed && (
+        {sub.postUrl && (
           <a
             href={sub.postUrl}
             target="_blank"
@@ -281,16 +269,6 @@ const VendorSubmissionCard: React.FC<{ sub: ChallengeSubmission }> = ({ sub }) =
             <FaExternalLinkAlt size={10} className="flex-shrink-0" />
             <span className="truncate">{sub.postUrl}</span>
           </a>
-        )}
-
-        {/* Embed */}
-        {sub.postUrl && showEmbed && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 flex items-center gap-1">
-              <FaLink size={9} /> Live post preview
-            </p>
-            <SocialEmbed url={sub.postUrl} />
-          </div>
         )}
 
         {/* Screenshots */}

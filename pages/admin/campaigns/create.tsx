@@ -2,16 +2,16 @@
 // Route: /admin/campaigns/create
 // Comprehensive campaign creation with all features from vendor frontend
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import AdminLayout from '@/components/admin/Layout'
-import { createCampaign, uploadCampaignImage, uploadAdditionalImages, addProductsToCampaign, getVendorBalance, createStripeCheckoutSession, createPaystackSession } from '@/services/vendor'
+import { createCampaign, uploadCampaignImage, uploadAdditionalImages, addProductsToCampaign, getVendorBalance, createStripeCheckoutSession, createPaystackSession, analyzeCampaignDraft } from '@/services/vendor'
 import { getVendorProfile } from '@/services/vendor'
 import { getCurrentUser } from '@/services/auth'
 import { useBrand } from '@/contexts/BrandContext'
-import { FaSpinner, FaEye, FaArrowLeft } from 'react-icons/fa'
+import { FaSpinner, FaEye, FaArrowLeft, FaBolt, FaMagic } from 'react-icons/fa'
 import GoalSelectionStep from '@/components/admin/campaigns/GoalSelectionStep'
 import CampaignDetailsForm from '@/components/admin/campaigns/CampaignDetailsForm'
 import BudgetPaymentForm from '@/components/admin/campaigns/BudgetPaymentForm'
@@ -26,6 +26,7 @@ import CampaignSummaryPage from '@/components/admin/campaigns/CampaignSummaryPag
 import CampaignPreviewModal from '@/components/admin/campaigns/CampaignPreviewModal'
 import useCurrency from '@/hooks/useCurrency'
 import type { SupportedCurrency } from '@/contexts/CurrencyProvider'
+import type { ChallengeDraftAnalysisResult } from '@/services/challenges'
 
 const CAMPAIGN_SOCIAL_PLATFORM_OPTIONS = [
   { value: 'instagram', label: 'Instagram' },
@@ -129,6 +130,11 @@ const CreateCampaignPage: React.FC = () => {
     commissionType?: 'PERCENTAGE' | 'FIXED'
   }>>([])
   const [draftLoaded, setDraftLoaded] = useState(false)
+  const [aiReview, setAiReview] = useState<ChallengeDraftAnalysisResult | null>(null)
+  const [draftCheckLoading, setDraftCheckLoading] = useState(false)
+  const [assistantBackgroundBusy, setAssistantBackgroundBusy] = useState(false)
+  const analyzeBusyRef = useRef(false)
+  const lastSilentAnalyzeOkAt = useRef(0)
 
   const DRAFT_STORAGE_KEY = 'business_campaign_draft'
   const DRAFT_IMAGES_DB = 'businessCampaignDraftImages'
@@ -930,6 +936,87 @@ const CreateCampaignPage: React.FC = () => {
       ? Math.max(1, Math.floor(parseFloat(formData.budget) / parseFloat(formData.paymentPerInfluencer)))
       : ''
 
+  const buildCampaignDraftForAnalysis = useCallback(() => ({
+    title: formData.title,
+    description: formData.description,
+    objective: formData.objective,
+    budget: formData.budget,
+    paymentStructure: formData.paymentStructure,
+    paymentAmount: formData.paymentAmount,
+    paymentPerInfluencer: formData.paymentPerInfluencer,
+    maxInfluencers: formData.maxInfluencers,
+    startDate: formData.startDate,
+    endDate: formData.endDate,
+    requirements: formData.requirements.filter((r) => r.trim() !== ''),
+    socialPlatforms: formData.socialPlatforms,
+    hashtags: formData.hashtags,
+    contentStyle: formData.contentStyle,
+    targetUrl: formData.targetUrl,
+    videoLink: formData.videoLink,
+    followerTiers: formData.followerTiers.map((t) => ({
+      minFollowers: t.minFollowers,
+      maxFollowers: t.maxFollowers,
+      amount: t.amount,
+    })),
+    audienceTargeting: audienceTargeting ?? undefined,
+  }), [audienceTargeting, formData])
+
+  const draftAnalyzeFingerprint = useMemo(
+    () => JSON.stringify(buildCampaignDraftForAnalysis()),
+    [buildCampaignDraftForAnalysis]
+  )
+
+  const runCampaignDraftCheck = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      const silent = !!opts?.silent
+      const hasMinimum =
+        formData.title.trim().length > 1 ||
+        formData.description.trim().length > 20 ||
+        (!!formData.budget && parseFloat(formData.budget) > 0)
+      if (!hasMinimum) {
+        if (!silent) toast.error('Add a title, stronger description, or budget before analysis.')
+        return
+      }
+      if (analyzeBusyRef.current && silent) return
+      if (analyzeBusyRef.current && !silent) {
+        toast.error('Analysis is still running')
+        return
+      }
+      analyzeBusyRef.current = true
+      if (silent) setAssistantBackgroundBusy(true)
+      else setDraftCheckLoading(true)
+      try {
+        const result = await analyzeCampaignDraft(buildCampaignDraftForAnalysis())
+        setAiReview(result)
+        if (silent) lastSilentAnalyzeOkAt.current = Date.now()
+      } catch (e: any) {
+        if (!silent) toast.error(e?.response?.data?.error || 'Could not analyze campaign draft.')
+      } finally {
+        analyzeBusyRef.current = false
+        if (silent) setAssistantBackgroundBusy(false)
+        else setDraftCheckLoading(false)
+      }
+    },
+    [buildCampaignDraftForAnalysis, formData.budget, formData.description, formData.title]
+  )
+
+  useEffect(() => {
+    if (currentStep !== 'create' || showSummary) return
+    const hasMinimum =
+      formData.title.trim().length > 1 ||
+      formData.description.trim().length > 20 ||
+      (!!formData.budget && parseFloat(formData.budget) > 0)
+    if (!hasMinimum) return
+    const t = window.setTimeout(() => {
+      if (Date.now() - lastSilentAnalyzeOkAt.current < 50_000) return
+      if (analyzeBusyRef.current) return
+      void runCampaignDraftCheck({ silent: true })
+    }, 3200)
+    return () => window.clearTimeout(t)
+  }, [currentStep, draftAnalyzeFingerprint, formData.budget, formData.description, formData.title, runCampaignDraftCheck, showSummary])
+
+  const draftAnalysisActive = draftCheckLoading || assistantBackgroundBusy
+
   const handleGoalSelect = (objective: 'BRAND_AWARENESS' | 'TRAFFIC' | 'LEADS' | 'SALES' | 'POLITICAL') => {
     setFormData({ ...formData, objective })
     setCurrentStep('create')
@@ -1038,6 +1125,19 @@ const CreateCampaignPage: React.FC = () => {
             />
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+              {aiReview && (
+                <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50/80 dark:bg-emerald-900/20 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-300 mb-1">
+                    Draft quality score
+                  </p>
+                  <p className="text-2xl font-extrabold text-slate-900 dark:text-white">
+                    {aiReview.overall.score}/100
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+                    {aiReview.headline || 'AI analysis refreshed from your current draft.'}
+                  </p>
+                </div>
+              )}
               <div className="bus-responsive-two-col gap-4 sm:gap-6">
                 <div className="space-y-4 sm:space-y-6">
                   <CampaignDetailsForm
@@ -1271,6 +1371,30 @@ const CreateCampaignPage: React.FC = () => {
               </div>
 
               <div className="mt-6 sm:mt-8 space-y-4">
+                <div className="rounded-xl border overflow-hidden bg-gradient-to-br from-emerald-50/90 via-white to-cyan-50/70 dark:from-emerald-950/35 dark:via-slate-800 dark:to-cyan-950/25 border-emerald-100 dark:border-emerald-900/60">
+                  <div className="p-4 flex items-start justify-between gap-3">
+                    <div className="flex gap-3 min-w-0">
+                      <div className="shrink-0 w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-300">
+                        <FaMagic size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">Campaign AI analysis</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                          Auto-checks in the background while you type, or run it now.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void runCampaignDraftCheck()}
+                      disabled={draftAnalysisActive}
+                      className="inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed min-w-[8.5rem]"
+                    >
+                      {draftAnalysisActive ? <FaSpinner className="animate-spin" size={12} /> : <FaBolt size={12} />}
+                      {draftAnalysisActive ? 'Analyzing…' : 'Analyze draft'}
+                    </button>
+                  </div>
+                </div>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 text-center">
                   * Required fields. Images and videos are optional.
                 </p>

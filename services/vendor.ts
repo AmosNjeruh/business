@@ -2,6 +2,7 @@
 // Mirrors frontend/services/vendor.ts but for the business app (localStorage-based auth)
 
 import Api from './api';
+import type { ChallengeDraftAnalysisResult } from './challenges';
 
 // ─── Campaigns ───────────────────────────────────────────────────────────────
 
@@ -36,6 +37,49 @@ export interface CreateCampaignData {
   hashtags?: string[];
   contentStyle?: 'CREATOR_CREATIVITY' | 'AS_BRIEFED';
   useBalance?: boolean;
+}
+
+export interface CampaignDraftAnalyzePayload {
+  title?: string;
+  description?: string;
+  objective?: string;
+  budget?: string | number;
+  paymentStructure?: string;
+  paymentAmount?: string | number;
+  paymentPerInfluencer?: string | number;
+  maxInfluencers?: string | number;
+  startDate?: string;
+  endDate?: string;
+  requirements?: string[];
+  socialPlatforms?: string[];
+  hashtags?: string[];
+  contentStyle?: 'CREATOR_CREATIVITY' | 'AS_BRIEFED';
+  targetUrl?: string;
+  videoLink?: string;
+  followerTiers?: Array<{ minFollowers: number; maxFollowers: number | null; amount: string | number }>;
+  audienceTargeting?: unknown;
+  localCurrency?: string;
+}
+
+function withClientReferenceNow(draft: Record<string, unknown>): Record<string, unknown> {
+  const now = new Date();
+  return {
+    ...draft,
+    clientNow: now.toISOString(),
+    clientTimeZone:
+      typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC' : 'UTC',
+    clientNowLocal: now.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' }),
+  };
+}
+
+function campaignDraftWithoutImages(draft: Record<string, unknown>): Record<string, unknown> {
+  const {
+    heroImage: _omitHeroImage,
+    thumbnailImage: _omitThumb,
+    promotionalImages: _omitPromo,
+    ...rest
+  } = draft;
+  return rest;
 }
 
 export const getCampaigns = async (params: GetCampaignsParams = {}) => {
@@ -82,6 +126,17 @@ export const getCampaignMetricsTimeSeries = async (
 
 export const createCampaign = async (data: CreateCampaignData) => {
   const response = await Api.post<{ data: any }>('/vendor/campaigns', data);
+  return response.data.data;
+};
+
+/** One-shot AI feedback for campaign create draft. */
+export const analyzeCampaignDraft = async (
+  draft: CampaignDraftAnalyzePayload
+): Promise<ChallengeDraftAnalysisResult> => {
+  const response = await Api.post<{ data: ChallengeDraftAnalysisResult }>(
+    '/vendor/campaigns/analyze-draft',
+    withClientReferenceNow(campaignDraftWithoutImages(draft as Record<string, unknown>))
+  );
   return response.data.data;
 };
 

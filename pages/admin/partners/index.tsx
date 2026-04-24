@@ -114,6 +114,22 @@ function getPartnerScore(partner: any) {
   return Math.min(score, 100);
 }
 
+function getPartnerTotalFollowers(partner: any): number {
+  const accounts = Array.isArray(partner?.socialMediaAccounts) ? partner.socialMediaAccounts : [];
+  const fromAccounts = accounts.reduce((sum: number, acc: any) => sum + (acc?.followers || 0), 0);
+  if (fromAccounts > 0) return fromAccounts;
+  return Number(partner?.totalFollowers || 0);
+}
+
+function getPartnerCampaignCount(partner: any): number {
+  return Number(
+    partner?.completedCampaigns ||
+      partner?.totalCampaigns ||
+      partner?.stats?.approvedApplications ||
+      0
+  );
+}
+
 function getPartnerTier(score: number) {
   if (score >= 80) return { name: 'Elite', iconName: 'crown', color: 'bg-gradient-to-r from-yellow-400 to-yellow-600' };
   if (score >= 60) return { name: 'Premium', iconName: 'rocket', color: 'bg-gradient-to-r from-purple-400 to-purple-600' };
@@ -226,6 +242,7 @@ function BulkInviteModal({
     </div>
   );
 }
+
 
 // ── Invite Modal ──────────────────────────────────────────────────────────────
 function InviteModal({
@@ -364,44 +381,32 @@ function CurateModal({
   );
 }
 
-// Helper function to generalize location (privacy-friendly)
-function generalizeLocation(demographicInfo: any): string | null {
+// Helper function to extract country only for location filtering.
+function extractCountryFromDemographicInfo(demographicInfo: any): string | null {
   if (!demographicInfo) return null;
+
+  // Match FinalBoss users logic first: use explicit country field only.
+  const explicitCountry = demographicInfo.country;
+  if (typeof explicitCountry === 'string' && explicitCountry.trim()) {
+    return explicitCountry.trim();
+  }
   
-  // If we have address components, use city and country
+  // If we have address components, use country directly.
   if (demographicInfo.addressComponents && Array.isArray(demographicInfo.addressComponents)) {
-    let city = '';
     let country = '';
     
     demographicInfo.addressComponents.forEach((component: any) => {
       const types = component.types || [];
-      if (types.includes('locality') || types.includes('administrative_area_level_2')) {
-        city = component.long_name || '';
-      }
       if (types.includes('country')) {
         country = component.long_name || '';
       }
     });
     
-    if (city && country) return `${city}, ${country}`;
-    if (city) return city;
     if (country) return country;
   }
   
-  // Fallback: try to extract city/country from location string
-  const location = demographicInfo.location || demographicInfo.address || '';
-  if (!location) return null;
-  
-  // Remove exact coordinates/plus codes
-  const cleaned = location.replace(/^[A-Z0-9+]+,\s*/, '').replace(/^-?\d+\.?\d*,\s*-?\d+\.?\d*\s*,?\s*/, '');
-  
-  // Try to extract city and country
-  const parts = cleaned.split(',').map((p: string) => p.trim()).filter((p: string) => p);
-  if (parts.length >= 2) {
-    return `${parts[0]}, ${parts[parts.length - 1]}`;
-  }
-  
-  return cleaned || null;
+  // Do not infer from free-text location/address to avoid state/county noise.
+  return null;
 }
 
 const AdminPartnersPage: React.FC = () => {
@@ -689,7 +694,7 @@ const AdminPartnersPage: React.FC = () => {
       const platforms = new Set<string>();
       
       partnersData.forEach((partner: any) => {
-        const loc = generalizeLocation(partner.demographicInfo);
+        const loc = extractCountryFromDemographicInfo(partner.demographicInfo);
         if (loc) locations.add(loc);
         
         if (Array.isArray(partner.socialMediaAccounts)) {
@@ -710,7 +715,7 @@ const AdminPartnersPage: React.FC = () => {
       // Location filter
       if (locationFilter !== "all") {
         filtered = filtered.filter((partner: any) => {
-          const loc = generalizeLocation(partner.demographicInfo);
+          const loc = extractCountryFromDemographicInfo(partner.demographicInfo);
           return loc === locationFilter;
         });
       }
@@ -1001,7 +1006,7 @@ const AdminPartnersPage: React.FC = () => {
                 }}
                 className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-sm text-slate-700 dark:text-slate-300 outline-none focus:border-emerald-400 dark:focus:border-emerald-400/50"
               >
-                <option value="all">All Locations</option>
+                <option value="all">All Countries</option>
                 {availableLocations.map(location => (
                   <option key={location} value={location}>{location}</option>
                 ))}
@@ -1518,8 +1523,12 @@ const AdminPartnersPage: React.FC = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 dark:text-white">{fmtFollowers(partner.totalFollowers)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 dark:text-white">{partner.completedCampaigns || partner.totalCampaigns || 0}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 dark:text-white">
+                        {fmtFollowers(getPartnerTotalFollowers(partner))}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-slate-900 dark:text-white">
+                        {getPartnerCampaignCount(partner)}
+                      </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         {partner.averageRating > 0 ? (
                           <div className="flex items-center gap-1">

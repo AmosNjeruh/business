@@ -150,6 +150,78 @@ export interface CreateChallengePayload {
   sessionId?: string;
 }
 
+export type ChallengeDraftPatchOp = 'set' | 'replace' | 'append';
+
+export interface ChallengeDraftPatch {
+  id: string;
+  path: string;
+  op: ChallengeDraftPatchOp;
+  value: unknown;
+  rationale?: string;
+}
+
+export type ChallengeScoreBand = 'strong' | 'moderate' | 'weak';
+
+export interface ChallengeDraftScorecardDimension {
+  key: string;
+  score: number;
+  band: ChallengeScoreBand;
+  strength: string;
+  weakness: string;
+  fix: string;
+}
+
+export interface ChallengeDraftScorecard {
+  dimensions: ChallengeDraftScorecardDimension[];
+  total: number;
+}
+
+export type ChallengeDraftOverallStatus = 'revise' | 'optimize' | 'ready';
+
+export interface ChallengeDraftOverall {
+  score: number;
+  status: ChallengeDraftOverallStatus;
+  criticalFixes: string[];
+}
+
+export interface ChallengeDraftAnalysisResult {
+  headline: string;
+  strengths: string[];
+  scorecard: ChallengeDraftScorecard;
+  overall: ChallengeDraftOverall;
+  patches: ChallengeDraftPatch[];
+  campaignImprovements: Array<{
+    area: string;
+    observation: string;
+    suggestion: string;
+    priority: 'high' | 'medium' | 'low';
+  }>;
+  languageAndGrammar: Array<{
+    field: string;
+    snippet?: string;
+    issue: string;
+    suggestedFix: string;
+  }>;
+  suggestedContentByField: Array<{
+    field: string;
+    guidance: string;
+    example?: string;
+  }>;
+  readinessNote: string;
+  promptVersion?: string;
+}
+
+function withClientReferenceNow(draft: Record<string, unknown>): Record<string, unknown> {
+  const now = new Date();
+  return {
+    ...draft,
+    clientNow: now.toISOString(),
+    clientTimeZone:
+      typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'UTC' : 'UTC',
+    clientNowLocal: now.toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' }),
+  };
+}
+
 // ─── Public ───────────────────────────────────────────────────────────────────
 
 export const listChallenges = async (params?: {
@@ -245,6 +317,15 @@ export const vendorListChallenges = async (params?: {
 export const vendorCreateChallenge = async (payload: CreateChallengePayload) => {
   const response = await Api.post('/vendor/challenges', payload);
   return response.data.data as Challenge;
+};
+
+/** One-shot AI feedback for challenge create draft. */
+export const vendorAnalyzeChallengeDraft = async (draft: Record<string, unknown>) => {
+  const response = await Api.post<{ data: ChallengeDraftAnalysisResult }>(
+    '/vendor/challenges/analyze-draft',
+    withClientReferenceNow(draft)
+  );
+  return response.data.data as ChallengeDraftAnalysisResult;
 };
 
 export const vendorGetChallenge = async (challengeId: string) => {
