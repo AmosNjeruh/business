@@ -174,11 +174,19 @@ export default function CampaignDetailPage() {
   const [hiringLoading, setHiringLoading] = useState(false);
   const [hiringSearchLoading, setHiringSearchLoading] = useState(false);
 
-  // ── derived post metrics ──────────────────────────────────────────────────
-  const allPosts = useMemo(() => {
+  // ── derived post metrics (approved applications only) ────────────────────
+  const allSubmittedPosts = useMemo(() => {
     if (!campaign || !Array.isArray(campaign.applications)) return [];
-    return campaign.applications.flatMap((app: any) => app.posts || []);
+    return campaign.applications.flatMap((app: any) =>
+      (app.posts || []).map((post: any) => ({ ...post, applicationStatus: app.status }))
+    );
   }, [campaign]);
+
+  const allPosts = useMemo(
+    () => allSubmittedPosts.filter((p: any) => p?.applicationStatus === "APPROVED"),
+    [allSubmittedPosts]
+  );
+  const unapprovedPostsCount = allSubmittedPosts.length - allPosts.length;
 
   const validatedPosts = useMemo(() => allPosts.filter((p: any) => p?.validated), [allPosts]);
 
@@ -228,7 +236,29 @@ export default function CampaignDetailPage() {
     [platformStats]
   );
 
-  const metrics = campaign?.campaignMetrics;
+  const metrics = useMemo(() => {
+    return allPosts.reduce(
+      (acc: any, p: any) => {
+        acc.totalPosts += 1;
+        acc.totalImpressions += Number(p?.impressions ?? 0);
+        acc.totalViews += Number(p?.views ?? 0);
+        acc.totalReach += Number(p?.reach ?? p?.views ?? 0);
+        acc.totalLikes += Number(p?.likes ?? 0);
+        acc.totalComments += Number(p?.comments ?? 0);
+        acc.totalShares += Number(p?.shares ?? 0);
+        return acc;
+      },
+      {
+        totalPosts: 0,
+        totalImpressions: 0,
+        totalViews: 0,
+        totalReach: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        totalShares: 0,
+      }
+    );
+  }, [allPosts]);
   const totalReach = metrics?.totalReach ?? metrics?.totalViews ?? 0;
 
   const engagementBreakdownData = useMemo(() => {
@@ -457,6 +487,11 @@ export default function CampaignDetailPage() {
         {/* Engagement KPI strip (shown if metrics exist) */}
         {hasEngagement && (
           <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-4">
+            {unapprovedPostsCount > 0 && (
+              <p className="text-xs mb-3 px-2.5 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300">
+                Analytics include approved applications only. Excluded: {unapprovedPostsCount.toLocaleString()} posts from pending/rejected applications.
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
               <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs">
                 <FaFileAlt className="h-3.5 w-3.5 text-indigo-400" />
@@ -740,7 +775,7 @@ export default function CampaignDetailPage() {
                   {engagementBreakdownData.length > 0 && (
                     <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5">
                       <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Engagement by metric</h3>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Total engagement across all posts in this campaign</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Total engagement from approved applications only</p>
                       <div className="h-72">
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={engagementBreakdownData} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
@@ -766,7 +801,7 @@ export default function CampaignDetailPage() {
                       {reachByPlatformPieData.length > 0 && (
                         <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5">
                           <h3 className="text-sm font-semibold text-slate-900 dark:text-white mb-1">Reach by platform</h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Distribution of total reach across social platforms</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Distribution of approved-post reach across social platforms</p>
                           <div className="h-72">
                             <ResponsiveContainer width="100%" height="100%">
                               <PieChart>

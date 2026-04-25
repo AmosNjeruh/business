@@ -220,11 +220,80 @@ export default function CampaignAdvancedAnalyticsPage() {
     };
   }, [id, snapWindow]);
 
-  const totals = metricsDto?.totals;
+  const approvedApplications = useMemo(
+    () => ((campaign?.applications ?? []) as any[]).filter((app: any) => String(app?.status) === "APPROVED"),
+    [campaign?.applications]
+  );
+  const allSubmittedPosts = useMemo(
+    () => ((campaign?.applications ?? []) as any[]).flatMap((app: any) => app.posts ?? []),
+    [campaign?.applications]
+  );
+  const approvedPosts = useMemo(
+    () =>
+      approvedApplications.flatMap((app: any) =>
+        (app.posts ?? []).map((post: any) => ({
+          ...post,
+          partnerName: appPartnerById.get(app.id) ?? app.partner?.name ?? "—",
+          applicationStatus: app.status,
+        }))
+      ),
+    [approvedApplications, appPartnerById]
+  );
+  const unapprovedPostsCount = allSubmittedPosts.length - approvedPosts.length;
+
   const byPlatform = useMemo(() => {
-    const raw = (metricsDto?.byPlatform ?? []) as any[];
-    return filterRowsByAllowedPlatforms(raw);
-  }, [metricsDto?.byPlatform]);
+    const map = new Map<string, any>();
+    approvedPosts.forEach((p: any) => {
+      const key = String(p.platform || "OTHER").toUpperCase();
+      const cur = map.get(key) || {
+        platform: key,
+        posts: 0,
+        views: 0,
+        impressions: 0,
+        reach: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        engagementRate: 0,
+      };
+      cur.posts += 1;
+      cur.views += Number(p.views ?? 0);
+      cur.impressions += Number(p.impressions ?? 0);
+      cur.reach += Number(p.reach ?? p.views ?? 0);
+      cur.likes += Number(p.likes ?? 0);
+      cur.comments += Number(p.comments ?? 0);
+      cur.shares += Number(p.shares ?? 0);
+      map.set(key, cur);
+    });
+    const rows = Array.from(map.values()).map((r: any) => {
+      const interactions = r.likes + r.comments + r.shares;
+      const denom = r.reach > 0 ? r.reach : r.views;
+      return {
+        ...r,
+        engagementRate: denom > 0 ? Number(((interactions / denom) * 100).toFixed(2)) : 0,
+      };
+    });
+    return filterRowsByAllowedPlatforms(rows);
+  }, [approvedPosts]);
+
+  const totals = useMemo(() => {
+    const t = approvedPosts.reduce(
+      (acc: any, p: any) => {
+        acc.posts += 1;
+        acc.views += Number(p.views ?? 0);
+        acc.impressions += Number(p.impressions ?? 0);
+        acc.reach += Number(p.reach ?? p.views ?? 0);
+        acc.likes += Number(p.likes ?? 0);
+        acc.comments += Number(p.comments ?? 0);
+        acc.shares += Number(p.shares ?? 0);
+        return acc;
+      },
+      { posts: 0, views: 0, impressions: 0, reach: 0, likes: 0, comments: 0, shares: 0 }
+    );
+    const interactions = t.likes + t.comments + t.shares;
+    const denom = t.reach > 0 ? t.reach : t.views;
+    return { ...t, engagementRate: denom > 0 ? Number(((interactions / denom) * 100).toFixed(2)) : 0 };
+  }, [approvedPosts]);
 
   const platformFilterOptions = useMemo(() => {
     const opts = byPlatform.map((p) => {
@@ -296,22 +365,42 @@ export default function CampaignAdvancedAnalyticsPage() {
 
   const snapChartData = useMemo(() => {
     const pts = snapshotTs?.points ?? [];
-    return pts.map((p: any) => ({
-      t: new Date(p.timestamp).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-      ...p,
-    }));
+    let lastKnown = {
+      likes: 0,
+      comments: 0,
+      shares: 0,
+      views: 0,
+      impressions: 0,
+      reach: 0,
+    };
+    return pts.map((p: any) => {
+      const isEmptyBucket =
+        Number(p?.likes ?? 0) === 0 &&
+        Number(p?.comments ?? 0) === 0 &&
+        Number(p?.shares ?? 0) === 0 &&
+        Number(p?.views ?? 0) === 0 &&
+        Number(p?.impressions ?? 0) === 0 &&
+        Number(p?.reach ?? 0) === 0;
+      const normalized = isEmptyBucket
+        ? lastKnown
+        : {
+            likes: Number(p?.likes ?? 0),
+            comments: Number(p?.comments ?? 0),
+            shares: Number(p?.shares ?? 0),
+            views: Number(p?.views ?? 0),
+            impressions: Number(p?.impressions ?? 0),
+            reach: Number(p?.reach ?? 0),
+          };
+      lastKnown = normalized;
+      return {
+        t: new Date(p.timestamp).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
+        timestamp: p.timestamp,
+        ...normalized,
+      };
+    });
   }, [snapshotTs]);
 
-  const validatedPosts = useMemo(() => {
-    if (!campaign?.applications) return [];
-    return campaign.applications.flatMap((app: any) =>
-      (app.posts ?? []).map((post: any) => ({
-        ...post,
-        partnerName: appPartnerById.get(app.id) ?? "—",
-        applicationStatus: app.status,
-      }))
-    );
-  }, [campaign, appPartnerById]);
+  const validatedPosts = approvedPosts;
 
   const pieReach = useMemo(() => {
     let rows = byPlatform;
@@ -339,8 +428,8 @@ export default function CampaignAdvancedAnalyticsPage() {
   }, [byPlatform, platformFilter]);
 
   const participantPerformanceRows = useMemo((): ParticipantPerfRow[] => {
-    if (!campaign?.applications?.length) return [];
-    return campaign.applications
+    if (!approvedApplications.length) return [];
+    return approvedApplications
       .map((app: any): ParticipantPerfRow => {
         const posts = app.posts ?? [];
         const acc = { views: 0, likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0 };
@@ -366,17 +455,17 @@ export default function CampaignAdvancedAnalyticsPage() {
         };
       })
       .sort((a: ParticipantPerfRow, b: ParticipantPerfRow) => b.likes + b.comments - (a.likes + a.comments));
-  }, [campaign?.applications, appPartnerById]);
+  }, [approvedApplications, appPartnerById]);
 
   const participantPerformanceRowsFiltered = useMemo((): ParticipantPerfRow[] => {
     if (platformFilter === "ALL") return participantPerformanceRows;
     const pf = platformFilter.toUpperCase();
     return participantPerformanceRows.filter((r: ParticipantPerfRow) => {
-      const app = campaign?.applications?.find((a: any) => String(a.id) === r.id);
+      const app = approvedApplications.find((a: any) => String(a.id) === r.id);
       const posts = app?.posts ?? [];
       return posts.some((p: any) => String(p.platform).toUpperCase() === pf);
     });
-  }, [participantPerformanceRows, platformFilter, campaign?.applications]);
+  }, [participantPerformanceRows, platformFilter, approvedApplications]);
 
   const validatedPostsFiltered = useMemo(() => {
     if (platformFilter === "ALL") return validatedPosts;
@@ -470,7 +559,7 @@ export default function CampaignAdvancedAnalyticsPage() {
             backLabel="Campaign"
             eyebrow="Campaign analytics"
             title={String(campaign.title ?? "Campaign")}
-            subtitle="Live metrics from your API — engagement, snapshots, workflow timeline, and post-level detail."
+            subtitle="Analytics are calculated from approved-application posts only. Pending/rejected submissions are excluded from charts and totals."
             lastUpdated={lastUpdated}
             statusLabel={status}
             statusTone={statusTone}
@@ -514,6 +603,11 @@ export default function CampaignAdvancedAnalyticsPage() {
           )}
 
           <div className="rounded-2xl border border-slate-200/90 dark:border-white/[0.07] bg-gradient-to-br from-white via-orange-50/25 to-rose-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 p-3 sm:p-4 md:p-5 shadow-xl dark:shadow-[0_0_80px_-24px_rgba(249,115,22,0.15)] ring-1 ring-orange-200/40 dark:ring-orange-500/10 space-y-4">
+            {unapprovedPostsCount > 0 && (
+              <div className="rounded-xl border border-amber-300/70 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                Clear scope: excluding <span className="font-semibold">{fmtNum(unapprovedPostsCount)}</span> posts from pending/rejected applications.
+              </div>
+            )}
             {platformFilterOptions.length > 0 && (
               <AnalyticsPlatformFilter
                 value={platformFilter}
@@ -528,7 +622,7 @@ export default function CampaignAdvancedAnalyticsPage() {
                 <AnalyticsCardHeader
                   icon={<FaBolt />}
                   title="Engagement pulse"
-                  description="Live totals from tracked posts — use platform chips above to isolate a channel. Nothing is clipped: cards expand to fit full numbers."
+                  description="Live totals from approved posts only — use platform chips above to isolate a channel."
                 />
                 <AnalyticsCardBody>
                   <AnalyticsKpiStrip items={kpiItems} />
@@ -838,7 +932,7 @@ export default function CampaignAdvancedAnalyticsPage() {
 
           {showTables && validatedPostsFiltered.length > 0 && (
             <AnalyticsCard>
-              <AnalyticsCardHeader title="Post ledger" description="Every tracked post row — respects platform filter above." />
+              <AnalyticsCardHeader title="Post ledger" description="Every approved post row — respects platform filter above." />
               <AnalyticsTableWrap>
                 <table className="min-w-full text-[10px]">
                   <thead className="sticky top-0 z-[1] bg-slate-50 dark:bg-slate-700/50 text-left border-b border-slate-200 dark:border-white/10">
