@@ -74,6 +74,45 @@ const Header: React.FC<HeaderProps> = ({
     return () => setMounted(false);
   }, []);
 
+  // If the user was added to a new vendor/team (e.g. hired as an agent),
+  // surface a prompt and refresh/select the new brand automatically.
+  useEffect(() => {
+    const u = getCurrentUser();
+    if (!u?.id) return;
+    if (!brands || brands.length === 0) return;
+
+    const storageKey = `t360:business:knownBrandIds:${u.id}`;
+    const prevRaw = typeof window !== "undefined" ? window.localStorage.getItem(storageKey) : null;
+    const prev = new Set<string>(
+      (prevRaw ? prevRaw.split(",") : []).map((x) => x.trim()).filter(Boolean)
+    );
+
+    const current = brands.map((b: any) => String(b.id || "")).filter(Boolean);
+    const newOnes = current.filter((id) => !prev.has(id));
+
+    // Persist current set immediately so we don't re-toast on re-render.
+    try {
+      window.localStorage.setItem(storageKey, current.join(","));
+    } catch {
+      // ignore
+    }
+
+    if (newOnes.length === 0) return;
+
+    // Prefer a newly-added staff brand (non-owner) if available.
+    const picked =
+      brands.find((b: any) => newOnes.includes(String(b.id)) && (b as any).isOwner === false) ||
+      brands.find((b: any) => newOnes.includes(String(b.id)));
+
+    if (picked) {
+      toast.success(`You were added to ${picked.name || "a vendor"} team`);
+      // Switch context so the agent immediately sees the new account.
+      setSelectedBrand(picked as any);
+    } else {
+      toast.success("You were added to a new vendor team");
+    }
+  }, [brands, setSelectedBrand]);
+
   useEffect(() => {
     setUser(getCurrentUser());
     fetchUnreadCount();

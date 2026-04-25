@@ -102,7 +102,7 @@ export default function AdminAuthPage() {
     }
 
     try {
-      const isAgent = window.confirm("Are you an Agent?");
+      const isAgent = window.confirm("Are you an Agent or a Marketer?");
       // Step 1: Register the user
       const auth = await register({
         email: regEmail,

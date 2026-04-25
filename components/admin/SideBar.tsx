@@ -78,9 +78,9 @@ const navGroups = [
     ],
   },
   {
-    label: "Trend360 Turbo",
+    label: "Agents",
     items: [
-      { href: "/admin/agents-cabin", label: "Agents Cabin", icon: FaRocket },
+      { href: "/admin/agents-cabin", label: "Agents", icon: FaRocket },
     ],
   },
   {
