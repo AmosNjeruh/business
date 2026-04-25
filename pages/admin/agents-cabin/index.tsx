@@ -45,6 +45,7 @@ export default function AgentsCabinPage() {
   const [isAgent, setIsAgent] = useState(false);
   const [prefLoading, setPrefLoading] = useState(true);
   const [switchingPref, setSwitchingPref] = useState(false);
+  const currentUserId = useMemo(() => getCurrentUser()?.id || "", []);
 
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -69,8 +70,9 @@ export default function AgentsCabinPage() {
   const [hireExpert, setHireExpert] = useState<HiringExpertListItem | null>(null);
   const [hireCampaignsLoading, setHireCampaignsLoading] = useState(false);
   const [hireCampaigns, setHireCampaigns] = useState<any[]>([]);
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
+  const [selectedCampaignIds, setSelectedCampaignIds] = useState<string[]>([]);
   const [hireSaving, setHireSaving] = useState(false);
+  const [hireDone, setHireDone] = useState<{ mode: "HIRE" | "SHORTLIST"; campaignTitles: string[] } | null>(null);
 
   const [hiresLoading, setHiresLoading] = useState(false);
   const [hires, setHires] = useState<AgentHireRow[]>([]);
@@ -302,7 +304,8 @@ export default function AgentsCabinPage() {
 
   const openHire = async (expert: HiringExpertListItem) => {
     setHireExpert(expert);
-    setSelectedCampaignId("");
+    setSelectedCampaignIds([]);
+    setHireDone(null);
     setHireOpen(true);
     try {
       setHireCampaignsLoading(true);
@@ -317,20 +320,30 @@ export default function AgentsCabinPage() {
 
   const submitHire = async (mode: "SHORTLIST" | "HIRE") => {
     if (!hireExpert) return;
-    if (!selectedCampaignId) {
-      toast.error("Select a campaign first");
+    if (currentUserId && hireExpert.vendorId === currentUserId) {
+      toast.error("You can’t hire yourself");
+      return;
+    }
+    if (!selectedCampaignIds.length) {
+      toast.error("Select at least one campaign");
       return;
     }
     try {
       setHireSaving(true);
-      if (mode === "SHORTLIST") {
-        await shortlistCampaignExpert(selectedCampaignId, hireExpert.vendorId);
-        toast.success("Expert shortlisted in campaign");
-      } else {
-        await hireCampaignExpert(selectedCampaignId, hireExpert.vendorId);
-        toast.success("Expert hired in campaign");
+      const selected = hireCampaigns.filter((c) => selectedCampaignIds.includes(String(c.id)));
+      const titles = selected.map((c) => String(c.title || "Untitled"));
+
+      for (const c of selected) {
+        const cid = String(c.id);
+        if (mode === "SHORTLIST") {
+          await shortlistCampaignExpert(cid, hireExpert.vendorId);
+        } else {
+          await hireCampaignExpert(cid, hireExpert.vendorId);
+        }
       }
-      setHireOpen(false);
+
+      setHireDone({ mode, campaignTitles: titles });
+      toast.success(mode === "SHORTLIST" ? `Shortlisted in ${titles.length} campaign(s)` : `Hired in ${titles.length} campaign(s)`);
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to update campaign hiring");
     } finally {
@@ -742,10 +755,11 @@ export default function AgentsCabinPage() {
                       </button>
                       <button
                         onClick={() => openHire(e)}
+                        disabled={!!currentUserId && e.vendorId === currentUserId}
                         className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 text-xs font-semibold hover:opacity-90"
                       >
                         <FaPaperPlane className="h-3.5 w-3.5" />
-                        Hire
+                        {!!currentUserId && e.vendorId === currentUserId ? "You" : "Hire"}
                       </button>
                     </div>
                   </div>
@@ -905,26 +919,54 @@ export default function AgentsCabinPage() {
 
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select campaign</label>
+                  <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1.5">Select campaign(s)</label>
                   {hireCampaignsLoading ? (
                     <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                       <FaSpinner className="h-3.5 w-3.5 animate-spin" /> Loading campaigns…
                     </div>
                   ) : (
-                    <select
-                      value={selectedCampaignId}
-                      onChange={(e) => setSelectedCampaignId(e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
-                    >
-                      <option value="">Choose a campaign…</option>
-                      {hireCampaigns.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.title || "Untitled"} ({c.status})
-                        </option>
-                      ))}
-                    </select>
+                    <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 max-h-56 overflow-y-auto space-y-2">
+                      {hireCampaigns.length === 0 ? (
+                        <p className="text-xs text-slate-500 dark:text-slate-400">No campaigns found.</p>
+                      ) : (
+                        hireCampaigns.map((c) => {
+                          const cid = String(c.id);
+                          const checked = selectedCampaignIds.includes(cid);
+                          return (
+                            <label key={cid} className="flex items-start gap-2 text-xs text-slate-700 dark:text-slate-200 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  const next = e.target.checked
+                                    ? Array.from(new Set([...selectedCampaignIds, cid]))
+                                    : selectedCampaignIds.filter((x) => x !== cid);
+                                  setSelectedCampaignIds(next);
+                                }}
+                                className="mt-0.5"
+                              />
+                              <span className="flex-1 min-w-0">
+                                <span className="font-semibold text-slate-900 dark:text-white">{c.title || "Untitled"}</span>{" "}
+                                <span className="text-slate-500 dark:text-slate-400">({c.status})</span>
+                              </span>
+                            </label>
+                          );
+                        })
+                      )}
+                    </div>
                   )}
                 </div>
+
+                {hireDone && (
+                  <div className="rounded-2xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 p-3">
+                    <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+                      {hireDone.mode === "HIRE" ? "Hired" : "Shortlisted"} successfully
+                    </p>
+                    <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80 mt-1">
+                      {hireDone.campaignTitles.join(", ")}
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <button
