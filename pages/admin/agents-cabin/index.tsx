@@ -45,7 +45,7 @@ export default function AgentsCabinPage() {
   const [isAgent, setIsAgent] = useState(false);
   const [prefLoading, setPrefLoading] = useState(true);
   const [switchingPref, setSwitchingPref] = useState(false);
-  const currentUserId = useMemo(() => getCurrentUser()?.id || "", []);
+  const [currentUserId, setCurrentUserId] = useState<string>(() => getCurrentUser()?.id || "");
 
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -94,6 +94,7 @@ export default function AgentsCabinPage() {
           const pref = String(user.userTypePreference || "").toUpperCase();
           setIsAgent(pref === "AGENT");
           setTab(pref === "AGENT" ? "portfolio" : "discover");
+          setCurrentUserId(user.id || "");
         }
         const fresh = await checkAuth();
         if (cancelled) return;
@@ -102,12 +103,14 @@ export default function AgentsCabinPage() {
           const pref = String(fresh.user.userTypePreference || "").toUpperCase();
           setIsAgent(pref === "AGENT");
           setTab(pref === "AGENT" ? "portfolio" : "discover");
+          setCurrentUserId(fresh.user.id || "");
         }
       } catch {
         const user = getCurrentUser();
         const pref = String(user?.userTypePreference || "").toUpperCase();
         setIsAgent(pref === "AGENT");
         setTab(pref === "AGENT" ? "portfolio" : "discover");
+        setCurrentUserId(user?.id || "");
       } finally {
         if (!cancelled) setPrefLoading(false);
       }
@@ -115,6 +118,33 @@ export default function AgentsCabinPage() {
     loadPref();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // React immediately when Settings toggles userTypePreference (same-tab).
+  useEffect(() => {
+    const syncFromStorage = () => {
+      const u = getCurrentUser();
+      const pref = String(u?.userTypePreference || "").toUpperCase();
+      const nextIsAgent = pref === "AGENT";
+      setCurrentUserId(u?.id || "");
+      setIsAgent(nextIsAgent);
+      // Force vendor view to discover-only; agent can keep current tab.
+      if (!nextIsAgent) {
+        setTab("discover");
+      }
+    };
+
+    const onUserUpdated = () => syncFromStorage();
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || e.key === "user") syncFromStorage();
+    };
+
+    window.addEventListener("t360:userUpdated" as any, onUserUpdated);
+    window.addEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("t360:userUpdated" as any, onUserUpdated);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
@@ -369,32 +399,38 @@ export default function AgentsCabinPage() {
                 Agents
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
-                Build your expert portfolio and discover professionals you can hire for campaign execution.
+                {isAgent
+                  ? "Build your expert portfolio and manage your hires from vendors."
+                  : "Discover professionals you can hire for campaign execution."}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => isAgent && setTab("portfolio")}
-                disabled={!isAgent || prefLoading}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                  tab === "portfolio"
-                    ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                    : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
-                }`}
-              >
-                My Portfolio
-              </button>
-              <button
-                onClick={() => isAgent && setTab("hires")}
-                disabled={!isAgent || prefLoading}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                  tab === "hires"
-                    ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                    : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
-                }`}
-              >
-                My Hires
-              </button>
+              {isAgent && (
+                <>
+                  <button
+                    onClick={() => setTab("portfolio")}
+                    disabled={prefLoading}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                      tab === "portfolio"
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                        : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
+                    }`}
+                  >
+                    My Portfolio
+                  </button>
+                  <button
+                    onClick={() => setTab("hires")}
+                    disabled={prefLoading}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                      tab === "hires"
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                        : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
+                    }`}
+                  >
+                    My Hires
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setTab("discover")}
                 disabled={prefLoading}
@@ -430,7 +466,7 @@ export default function AgentsCabinPage() {
           </div>
         )}
 
-        {tab === "portfolio" && (
+        {tab === "portfolio" && isAgent && (
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
             {loadingProfile ? (
               <div className="flex items-center justify-center py-12">
@@ -989,7 +1025,7 @@ export default function AgentsCabinPage() {
           </div>
         )}
 
-        {tab === "hires" && (
+        {tab === "hires" && isAgent && (
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div>
