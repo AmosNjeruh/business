@@ -4,6 +4,57 @@
 import Api from './api';
 import type { ChallengeDraftAnalysisResult } from './challenges';
 
+// ─── Agent Hiring (expert-side) ──────────────────────────────────────────────
+
+export interface AgentHireRow {
+  id: string;
+  status: 'HIRED' | string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  conversationId: string | null;
+  hiredBy: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    picture: string | null;
+    vendorSlug?: string | null;
+  };
+  campaign: {
+    id: string;
+    title: string;
+    description: string;
+    objective: string;
+    budget: number;
+    paymentStructure: string;
+    paymentAmount?: number | null;
+    paymentType?: string | null;
+    paymentPerInfluencer?: number | null;
+    startDate: string;
+    endDate: string;
+    status: string;
+    requirements: string[];
+    targetUrl?: string | null;
+    image?: string | null;
+    additionalImages?: string[];
+    videoLink?: string | null;
+    socialPlatforms?: string[];
+    hashtags?: string[];
+    contentStyle?: string;
+    createdAt?: string;
+  };
+}
+
+export async function listMyHiredCampaigns(): Promise<AgentHireRow[]> {
+  const res = await Api.get('/vendor/agent/hiring/hires');
+  return (res.data?.data || res.data) as AgentHireRow[];
+}
+
+export async function getMyHiredCampaignById(campaignId: string): Promise<any> {
+  const res = await Api.get(`/vendor/agent/hiring/campaigns/${campaignId}`);
+  return res.data?.data || res.data;
+}
+
 // ─── Campaigns ───────────────────────────────────────────────────────────────
 
 export interface GetCampaignsParams {
@@ -1289,6 +1340,117 @@ export const getVendorProfile = async () => {
 
 export const updateVendorProfile = async (data: any) => {
   const response = await Api.put<{ data: any }>('/vendor/settings', data);
+  return response.data.data;
+};
+
+// ─── Hiring Experts / Agents ──────────────────────────────────────────────────
+
+export type HiringWorkSample = {
+  title: string;
+  link: string;
+  description?: string | null;
+};
+
+export type VendorHiringProfile = {
+  id: string;
+  vendorId: string;
+  bio: string | null;
+  portfolioLinks: string[];
+  workSamples: HiringWorkSample[];
+  skillsTags: string[];
+  isDiscoverable: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export const getMyHiringProfile = async (): Promise<VendorHiringProfile> => {
+  const response = await Api.get<{ data: any }>('/vendor/hiring/profile');
+  return response.data.data;
+};
+
+export const upsertMyHiringProfile = async (data: {
+  bio?: string | null;
+  portfolioLinks?: string[];
+  workSamples?: HiringWorkSample[];
+  skillsTags?: string[];
+  isDiscoverable?: boolean;
+}): Promise<VendorHiringProfile> => {
+  const response = await Api.put<{ data: any }>('/vendor/hiring/profile', data);
+  return response.data.data;
+};
+
+export type HiringExpertListItem = {
+  vendorId: string;
+  name: string | null;
+  email: string | null;
+  picture: string | null;
+  vendorSlug: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  whatsapp?: string | null;
+  bio: string | null;
+  portfolioLinks: string[];
+  workSamples: HiringWorkSample[];
+  skillsTags: string[];
+  updatedAt?: string;
+};
+
+export const listHiringExperts = async (params: {
+  search?: string;
+  skills?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const response = await Api.get<{ data: HiringExpertListItem[]; pagination: any }>(
+    '/vendor/hiring/experts',
+    { params }
+  );
+  return response.data;
+};
+
+export const getHiringExpert = async (vendorId: string): Promise<HiringExpertListItem> => {
+  const response = await Api.get<{ data: HiringExpertListItem }>(`/vendor/hiring/experts/${vendorId}`);
+  return response.data.data;
+};
+
+export type CampaignHiringExpertRow = {
+  id: string;
+  campaignId: string;
+  status: 'SHORTLISTED' | 'HIRED' | 'REMOVED';
+  notes: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  expert: HiringExpertListItem;
+};
+
+export const listCampaignHiringExperts = async (campaignId: string) => {
+  const response = await Api.get<{ data: CampaignHiringExpertRow[] }>(
+    `/vendor/campaigns/${campaignId}/hiring/experts`
+  );
+  return response.data.data;
+};
+
+export const shortlistCampaignExpert = async (campaignId: string, expertVendorId: string, notes?: string) => {
+  const response = await Api.post<{ data: any }>(`/vendor/campaigns/${campaignId}/hiring/shortlist`, {
+    expertVendorId,
+    ...(notes ? { notes } : {}),
+  });
+  return response.data.data;
+};
+
+export const hireCampaignExpert = async (campaignId: string, expertVendorId: string, notes?: string) => {
+  const response = await Api.post<{ data: any }>(`/vendor/campaigns/${campaignId}/hiring/hire`, {
+    expertVendorId,
+    ...(notes ? { notes } : {}),
+  });
+  return response.data.data;
+};
+
+export const removeCampaignExpert = async (campaignId: string, expertVendorId: string, notes?: string) => {
+  const response = await Api.post<{ data: any }>(`/vendor/campaigns/${campaignId}/hiring/remove`, {
+    expertVendorId,
+    ...(notes ? { notes } : {}),
+  });
   return response.data.data;
 };
 

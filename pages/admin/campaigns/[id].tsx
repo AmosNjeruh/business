@@ -15,6 +15,11 @@ import {
   updateWorkSubmission,
   getCampaignAnalytics,
   getTimeSeriesAnalytics,
+  listHiringExperts,
+  listCampaignHiringExperts,
+  shortlistCampaignExpert,
+  hireCampaignExpert,
+  removeCampaignExpert,
 } from "@/services/vendor";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
@@ -22,7 +27,7 @@ import {
   FaCheckCircle, FaTimesCircle, FaClock, FaExclamationTriangle,
   FaBullhorn, FaFileAlt, FaChevronRight, FaEye, FaEdit,
   FaHeart, FaComment, FaRetweet, FaChartLine, FaChartBar,
-  FaShareAlt, FaGlobeAmericas, FaBolt, FaFire,
+  FaShareAlt, FaGlobeAmericas, FaBolt, FaFire, FaSearch, FaBriefcase,
 } from "react-icons/fa";
 import {
   BarChart,
@@ -146,7 +151,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 const CHART_PALETTE = ["#6366f1", "#ec4899", "#f97316", "#06b6d4", "#10b981", "#f59e0b", "#8b5cf6", "#14b8a6"];
 
-type TabKey = "overview" | "analytics" | "applications" | "work" | "partners";
+type TabKey = "overview" | "analytics" | "applications" | "work" | "partners" | "hiring";
 
 export default function CampaignDetailPage() {
   const router = useRouter();
@@ -163,6 +168,11 @@ export default function CampaignDetailPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [previewSub, setPreviewSub] = useState<any>(null);
+  const [hiringSelected, setHiringSelected] = useState<any[]>([]);
+  const [hiringSearch, setHiringSearch] = useState("");
+  const [hiringResults, setHiringResults] = useState<any[]>([]);
+  const [hiringLoading, setHiringLoading] = useState(false);
+  const [hiringSearchLoading, setHiringSearchLoading] = useState(false);
 
   // ── derived post metrics ──────────────────────────────────────────────────
   const allPosts = useMemo(() => {
@@ -253,6 +263,7 @@ export default function CampaignDetailPage() {
         setCampaign(c);
         setApplications(apps.data || []);
         setWorkSubmissions(work.data || []);
+        listCampaignHiringExperts(id).then(setHiringSelected).catch(() => {});
       } catch (err: any) {
         toast.error(err?.response?.data?.error || "Failed to load campaign");
         router.push("/admin/campaigns");
@@ -261,6 +272,48 @@ export default function CampaignDetailPage() {
       }
     })();
   }, [id, router]);
+
+  useEffect(() => {
+    if (activeTab !== "hiring" || !id || typeof id !== "string") return;
+    setHiringLoading(true);
+    listCampaignHiringExperts(id)
+      .then(setHiringSelected)
+      .catch((e: any) => toast.error(e?.response?.data?.error || "Failed to load campaign experts"))
+      .finally(() => setHiringLoading(false));
+  }, [activeTab, id]);
+
+  const runHiringSearch = async () => {
+    if (!hiringSearch.trim()) {
+      setHiringResults([]);
+      return;
+    }
+    try {
+      setHiringSearchLoading(true);
+      const res = await listHiringExperts({ search: hiringSearch.trim(), limit: 24 });
+      setHiringResults(res.data || []);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to search experts");
+    } finally {
+      setHiringSearchLoading(false);
+    }
+  };
+
+  const setExpertStatus = async (expertVendorId: string, next: "SHORTLISTED" | "HIRED" | "REMOVED") => {
+    if (!id || typeof id !== "string") return;
+    try {
+      setActionLoading(expertVendorId);
+      if (next === "SHORTLISTED") await shortlistCampaignExpert(id, expertVendorId);
+      if (next === "HIRED") await hireCampaignExpert(id, expertVendorId);
+      if (next === "REMOVED") await removeCampaignExpert(id, expertVendorId);
+      const rows = await listCampaignHiringExperts(id);
+      setHiringSelected(rows);
+      toast.success(next === "HIRED" ? "Expert hired" : next === "REMOVED" ? "Expert removed" : "Expert shortlisted");
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Action failed");
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   // Fetch campaign analytics when analytics tab is active
   useEffect(() => {
@@ -488,14 +541,20 @@ export default function CampaignDetailPage() {
         {/* ── Tabs ─────────────────────────────────────────────────────────── */}
         <div>
           <div className="flex gap-1 bg-slate-100 dark:bg-slate-900/80 rounded-xl p-1 border border-slate-200 dark:border-white/8 w-fit mb-5 flex-wrap">
-            {(["overview", "analytics", "applications", "work", "partners"] as TabKey[]).map((t) => (
+            {(["overview", "analytics", "applications", "work", "partners", "hiring"] as TabKey[]).map((t) => (
               <button key={t} onClick={() => setActiveTab(t)}
                 className={`px-4 py-2 rounded-lg text-xs font-semibold capitalize transition-all ${
                   activeTab === t
                     ? "bg-gradient-to-r from-emerald-400 to-cyan-400 dark:from-emerald-500/30 dark:to-cyan-500/20 text-slate-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30"
                     : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                 }`}>
-                {t === "work" ? `Work (${workSubmissions.length})` : t === "applications" ? `Applications (${applications.length})` : t}
+                {t === "work"
+                  ? `Work (${workSubmissions.length})`
+                  : t === "applications"
+                    ? `Applications (${applications.length})`
+                    : t === "hiring"
+                      ? `Hiring (${hiringSelected.filter((x: any) => x.status !== "REMOVED").length})`
+                      : t}
               </button>
             ))}
           </div>
@@ -989,6 +1048,155 @@ export default function CampaignDetailPage() {
                   Browse Partners
                 </button>
               </Link>
+            </div>
+          )}
+
+          {activeTab === "hiring" && (
+            <div className="space-y-5">
+              <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <FaBriefcase className="h-4 w-4 text-emerald-500" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Hire an Expert</h3>
+                  <Link href="/admin/agents-cabin" className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 hover:underline">
+                    Agents Cabin →
+                  </Link>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <FaSearch className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                      <input
+                        value={hiringSearch}
+                        onChange={(e) => setHiringSearch(e.target.value)}
+                        placeholder="Search experts by name, email, or slug…"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
+                      />
+                    </div>
+                  </div>
+                  <button
+                    onClick={runHiringSearch}
+                    disabled={hiringSearchLoading}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                  >
+                    {hiringSearchLoading ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaSearch className="h-3.5 w-3.5" />}
+                    Search
+                  </button>
+                </div>
+
+                {hiringResults.length > 0 && (
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                    {hiringResults.map((e: any) => {
+                      const selected = hiringSelected.find((x: any) => x.expert?.vendorId === e.vendorId && x.status !== "REMOVED");
+                      return (
+                        <div key={e.vendorId} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/3 p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 flex items-center justify-center">
+                              {e.picture ? (
+                                <img src={e.picture} alt={e.name || "Expert"} className="h-full w-full object-cover" />
+                              ) : (
+                                <div className="text-xs font-bold text-slate-700 dark:text-slate-200">{(e.name || e.email || "E").slice(0, 1).toUpperCase()}</div>
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{e.name || "Expert"}</p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">{e.vendorSlug || e.email || e.vendorId}</p>
+                            </div>
+                            {selected?.status === "HIRED" && (
+                              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full border border-emerald-300 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                                HIRED
+                              </span>
+                            )}
+                            {selected?.status === "SHORTLISTED" && (
+                              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full border border-slate-300 dark:border-white/15 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-200">
+                                SHORTLISTED
+                              </span>
+                            )}
+                          </div>
+
+                          {e.bio && <p className="text-xs text-slate-600 dark:text-slate-300 mt-3 line-clamp-3">{e.bio}</p>}
+
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              onClick={() => setExpertStatus(e.vendorId, "SHORTLISTED")}
+                              disabled={actionLoading === e.vendorId}
+                              className="flex-1 px-3 py-2 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/6 disabled:opacity-60"
+                            >
+                              {actionLoading === e.vendorId ? "…" : "Shortlist"}
+                            </button>
+                            <button
+                              onClick={() => setExpertStatus(e.vendorId, "HIRED")}
+                              disabled={actionLoading === e.vendorId}
+                              className="flex-1 px-3 py-2 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                            >
+                              {actionLoading === e.vendorId ? "…" : "Hire"}
+                            </button>
+                            <button
+                              onClick={() => setExpertStatus(e.vendorId, "REMOVED")}
+                              disabled={actionLoading === e.vendorId}
+                              className="px-3 py-2 rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-500/15 disabled:opacity-60"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 dark:border-white/8 bg-white dark:bg-slate-900/70 p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <FaBriefcase className="h-4 w-4 text-emerald-500" />
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Selected Experts</h3>
+                </div>
+
+                {hiringLoading ? (
+                  <div className="flex items-center justify-center py-10">
+                    <FaSpinner className="h-6 w-6 animate-spin text-emerald-400" />
+                  </div>
+                ) : hiringSelected.filter((x: any) => x.status !== "REMOVED").length === 0 ? (
+                  <div className="py-10 text-center">
+                    <FaBriefcase className="h-10 w-10 text-slate-400 dark:text-slate-600 mx-auto mb-3" />
+                    <p className="text-sm text-slate-600 dark:text-slate-300">No experts selected</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">Search and shortlist/hire experts for this campaign</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {hiringSelected
+                      .filter((x: any) => x.status !== "REMOVED")
+                      .map((row: any) => (
+                        <div key={row.id} className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/3 p-4 flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full overflow-hidden border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 flex items-center justify-center">
+                            {row.expert?.picture ? (
+                              <img src={row.expert.picture} alt={row.expert.name || "Expert"} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="text-xs font-bold text-slate-700 dark:text-slate-200">
+                                {(row.expert?.name || row.expert?.email || "E").slice(0, 1).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                              {row.expert?.name || "Expert"}
+                            </p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                              {row.expert?.vendorSlug || row.expert?.email || row.expert?.vendorId}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full border ${
+                            row.status === "HIRED"
+                              ? "border-emerald-300 dark:border-emerald-500/20 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                              : "border-slate-300 dark:border-white/15 bg-white dark:bg-white/5 text-slate-700 dark:text-slate-200"
+                          }`}>
+                            {row.status}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
