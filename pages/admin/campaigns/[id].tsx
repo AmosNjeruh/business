@@ -1093,7 +1093,7 @@ export default function CampaignDetailPage() {
                   <FaBriefcase className="h-4 w-4 text-emerald-500" />
                   <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Hire an Expert</h3>
                   <Link href="/admin/agents-cabin" className="ml-auto text-xs text-emerald-600 dark:text-emerald-400 hover:underline">
-                    Agents Cabin →
+                    Agents →
                   </Link>
                 </div>
 

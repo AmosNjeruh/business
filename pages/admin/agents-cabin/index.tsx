@@ -363,10 +363,10 @@ export default function AgentsCabinPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
-                Trend360 Turbo
+                Agents
               </p>
               <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mt-1">
-                Agents Cabin
+                Agents
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
                 Build your expert portfolio and discover professionals you can hire for campaign execution.
