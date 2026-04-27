@@ -374,6 +374,35 @@ export const getMyPermissions = async (): Promise<{
   return response.data.data;
 };
 
+// ─── Agent Hiring Opportunities ───────────────────────────────────────────────
+
+export const listAgentHiringOpportunities = async (params: {
+  search?: string;
+  skills?: string[];
+  page?: number;
+  limit?: number;
+} = {}) => {
+  const q: any = { ...params };
+  if (Array.isArray(q.skills)) q.skills = q.skills.join(",");
+  const response = await Api.get<{ data: any }>('/vendor/agent/hiring/opportunities', { params: q });
+  return response.data.data;
+};
+
+export const applyToCampaignAsAgent = async (campaignId: string, notes?: string) => {
+  const response = await Api.post<{ data: any }>(`/vendor/agent/hiring/opportunities/${campaignId}/apply`, {
+    ...(notes ? { notes } : {}),
+  });
+  return response.data.data;
+};
+
+export const updateCampaignHiringSettings = async (
+  campaignId: string,
+  data: { isHiringAgents?: boolean; hiringSkillsTags?: string[]; hiringNotes?: string | null }
+) => {
+  const response = await Api.put<{ data: any }>(`/vendor/campaigns/${campaignId}/hiring/settings`, data);
+  return response.data.data;
+};
+
 // ─── Work Submissions ────────────────────────────────────────────────────────
 
 export const getWorkSubmissions = async (params: any = {}) => {
