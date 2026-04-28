@@ -253,10 +253,10 @@ const Header: React.FC<HeaderProps> = ({
           <Link href="/admin" className="flex items-center gap-2">
             <div className="hidden sm:flex flex-col leading-tight">
               <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                Business Suite
+                Trend360
               </span>
               <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-medium">
-                Agency control room
+              Business Suite
               </span>
             </div>
           </Link>

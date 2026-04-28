@@ -7,7 +7,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import AdminLayout from "@/components/admin/Layout";
 import { getDashboard, getVendorBalance, getCampaigns } from "@/services/vendor";
-import { getCurrentUser } from "@/services/auth";
+import { checkAuth, getCurrentUser, setUser } from "@/services/auth";
 import { useCurrency } from "@/hooks/useCurrency";
 import {
   FaChartLine,
@@ -97,9 +97,18 @@ const AdminDashboard: React.FC = () => {
   const [userName, setUserName] = useState<string>("there");
 
   useEffect(() => {
-    const user = getCurrentUser();
-    if (user) setUserName(user.name || user.email || "there");
+    const cached = getCurrentUser();
+    if (cached) setUserName(cached.name || cached.email || "there");
     fetchDashboard();
+    // Refresh user data from server so the greeting always shows the current name
+    checkAuth()
+      .then(({ user }) => {
+        if (user) {
+          setUser(user);
+          setUserName(user.name || user.email || "there");
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const fetchDashboard = async () => {
