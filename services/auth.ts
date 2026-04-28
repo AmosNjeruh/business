@@ -116,6 +116,12 @@ export const setUser = (user: any): void => {
   const win = getBrowserWindow();
   if (win?.localStorage) {
     win.localStorage.setItem('user', JSON.stringify(user));
+    try {
+      // Let pages react immediately (same-tab). Storage events don't fire in same tab.
+      (globalThis as any).window?.dispatchEvent?.(new Event('t360:userUpdated'));
+    } catch {
+      // ignore
+    }
   }
 };
 
