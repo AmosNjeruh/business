@@ -31,6 +31,14 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ mode }) => {
 
       // Check if user is new or if profile is incomplete
       const isNewUser = authResponse.isNewUser || false;
+      // Only show the Agent/Vendor prompt once, immediately after signup.
+      try {
+        if (isNewUser) {
+          window.localStorage.setItem(`t360:agentPromptEligible:${authResponse.user.id}`, '1');
+        } else {
+          window.localStorage.removeItem(`t360:agentPromptEligible:${authResponse.user.id}`);
+        }
+      } catch {}
       const vendorSettings = authResponse.user.vendorSettings;
       
       // Check if profile is incomplete (contactPhone required)

@@ -43,7 +43,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       const user = getCurrentUser();
       if (!user || String(user.role) !== "VENDOR") return;
       const key = `t360:agentPrompted:${user.id}`;
+      const eligibleKey = `t360:agentPromptEligible:${user.id}`;
       if (window.localStorage.getItem(key) === "1") return;
+      // Only prompt once after signup (eligible flag set by signup flow).
+      if (window.localStorage.getItem(eligibleKey) !== "1") return;
       try {
         const fresh = await checkAuth();
         if (cancelled) return;
@@ -68,6 +71,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       const res = await setUserTypePreference(pref);
       if (res?.user) setUser(res.user);
       window.localStorage.setItem(key, "1");
+      try {
+        window.localStorage.removeItem(`t360:agentPromptEligible:${user.id}`);
+      } catch {}
       setShowAgentPrompt(false);
       toast.success("Saved");
     } catch (e: any) {

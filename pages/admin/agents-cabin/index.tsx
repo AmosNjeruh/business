@@ -415,7 +415,7 @@ export default function AgentsCabinPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
                 {isAgent ? "Agent mode" : "Vendor mode"}
@@ -429,13 +429,13 @@ export default function AgentsCabinPage() {
                   : "Discover professionals you can hire for campaign execution."}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {isAgent && (
                 <>
                   <button
                     onClick={() => setTab("portfolio")}
                     disabled={prefLoading}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
                       tab === "portfolio"
                         ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
@@ -446,7 +446,7 @@ export default function AgentsCabinPage() {
                   <button
                     onClick={() => setTab("hires")}
                     disabled={prefLoading}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
                       tab === "hires"
                         ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
@@ -457,7 +457,7 @@ export default function AgentsCabinPage() {
                   <button
                     onClick={() => setTab("work")}
                     disabled={prefLoading}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
                       tab === "work"
                         ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
@@ -471,7 +471,7 @@ export default function AgentsCabinPage() {
                 <button
                   onClick={() => setTab("discover")}
                   disabled={prefLoading}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                  className={`w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
                     tab === "discover"
                       ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                       : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
@@ -723,22 +723,22 @@ export default function AgentsCabinPage() {
 
         {tab === "discover" && !isAgent && (
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <FaSearch className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">Discover Experts</h2>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 <input
                   value={discoverSearch}
                   onChange={(e) => setDiscoverSearch(e.target.value)}
                   placeholder="Search name, email, slug…"
-                  className="w-64 max-w-[55vw] rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
+                  className="w-full sm:w-64 max-w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
                 />
                 <button
                   onClick={onDiscover}
                   disabled={discoverLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
                 >
                   {discoverLoading ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaSearch className="h-3.5 w-3.5" />}
                   Search
@@ -845,22 +845,22 @@ export default function AgentsCabinPage() {
 
         {tab === "work" && isAgent && (
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <FaBriefcase className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">Find Work</h2>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 <input
                   value={workSearch}
                   onChange={(e) => setWorkSearch(e.target.value)}
                   placeholder="Search campaigns…"
-                  className="w-64 max-w-[55vw] rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
+                  className="w-full sm:w-64 max-w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
                 />
                 <button
                   onClick={onLoadWork}
                   disabled={workLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
                 >
                   {workLoading ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaSearch className="h-3.5 w-3.5" />}
                   Search

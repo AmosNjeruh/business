@@ -60,6 +60,11 @@ export default function AdminAuthPage() {
       const auth = await login({ email: loginEmail, password: loginPassword });
       setToken(auth.token);
       setUser(auth.user);
+      // Do not show the Agent/Vendor prompt on normal logins.
+      try {
+        const key = `t360:agentPromptEligible:${auth.user.id}`;
+        window.localStorage.removeItem(key);
+      } catch {}
       toast.success(`Welcome back, ${auth.user.name || auth.user.email}!`);
       router.push("/admin");
     } catch (err: any) {
@@ -113,6 +118,11 @@ export default function AdminAuthPage() {
       });
       setToken(auth.token);
       setUser(auth.user);
+      // Registration already asked "Agent or Marketer?" so never re-prompt in Layout.
+      try {
+        window.localStorage.setItem(`t360:agentPrompted:${auth.user.id}`, "1");
+        window.localStorage.removeItem(`t360:agentPromptEligible:${auth.user.id}`);
+      } catch {}
 
       // Step 2: Update vendor settings with business information
       try {
