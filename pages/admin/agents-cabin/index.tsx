@@ -11,6 +11,8 @@ import {
   shortlistCampaignExpert,
   hireCampaignExpert,
   listMyHiredCampaigns,
+  listAgentHiringOpportunities,
+  applyToCampaignAsAgent,
   type AgentHireRow,
   type HiringWorkSample,
   type VendorHiringProfile,
@@ -19,7 +21,7 @@ import {
 import { getConversationMessages, sendChatMessage, type ChatMessage } from "@/services/chat";
 import { FaBriefcase, FaSearch, FaSpinner, FaSave, FaPlus, FaTrash, FaCheckCircle, FaEye, FaPaperPlane, FaTimes } from "react-icons/fa";
 
-type TabKey = "portfolio" | "discover" | "hires";
+type TabKey = "portfolio" | "discover" | "hires" | "work";
 
 function cleanUrl(u: string) {
   const t = (u || "").trim();
@@ -76,6 +78,11 @@ export default function AgentsCabinPage() {
 
   const [hiresLoading, setHiresLoading] = useState(false);
   const [hires, setHires] = useState<AgentHireRow[]>([]);
+
+  const [workLoading, setWorkLoading] = useState(false);
+  const [workSearch, setWorkSearch] = useState("");
+  const [workRows, setWorkRows] = useState<any[]>([]);
+  const [applyingCampaignId, setApplyingCampaignId] = useState<string>("");
 
   const [chatOpen, setChatOpen] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
@@ -147,6 +154,19 @@ export default function AgentsCabinPage() {
       window.removeEventListener("storage", onStorage);
     };
   }, []);
+
+  const onLoadWork = async () => {
+    try {
+      setWorkLoading(true);
+      const res = await listAgentHiringOpportunities({ search: workSearch || undefined, page: 1, limit: 30 });
+      setWorkRows(Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : []);
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to load work opportunities");
+      setWorkRows([]);
+    } finally {
+      setWorkLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -386,11 +406,16 @@ export default function AgentsCabinPage() {
     onDiscover();
   }, [tab]);
 
+  useEffect(() => {
+    if (tab !== "work") return;
+    onLoadWork();
+  }, [tab]);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
                 {isAgent ? "Agent mode" : "Vendor mode"}
@@ -404,13 +429,13 @@ export default function AgentsCabinPage() {
                   : "Discover professionals you can hire for campaign execution."}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {isAgent && (
                 <>
                   <button
                     onClick={() => setTab("portfolio")}
                     disabled={prefLoading}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
                       tab === "portfolio"
                         ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
@@ -421,7 +446,7 @@ export default function AgentsCabinPage() {
                   <button
                     onClick={() => setTab("hires")}
                     disabled={prefLoading}
-                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
                       tab === "hires"
                         ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                         : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
@@ -429,19 +454,32 @@ export default function AgentsCabinPage() {
                   >
                     My Hires
                   </button>
+                  <button
+                    onClick={() => setTab("work")}
+                    disabled={prefLoading}
+                    className={`flex-1 sm:flex-none px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                      tab === "work"
+                        ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                        : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
+                    }`}
+                  >
+                    Find Work
+                  </button>
                 </>
               )}
-              <button
-                onClick={() => setTab("discover")}
-                disabled={prefLoading}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                  tab === "discover"
-                    ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
-                    : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
-                }`}
-              >
-                Discover Experts
-              </button>
+              {!isAgent && (
+                <button
+                  onClick={() => setTab("discover")}
+                  disabled={prefLoading}
+                  className={`w-full sm:w-auto px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                    tab === "discover"
+                      ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                      : "bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
+                  }`}
+                >
+                  Discover Experts
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -683,24 +721,24 @@ export default function AgentsCabinPage() {
           </div>
         )}
 
-        {tab === "discover" && (
+        {tab === "discover" && !isAgent && (
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <FaSearch className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white">Discover Experts</h2>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                 <input
                   value={discoverSearch}
                   onChange={(e) => setDiscoverSearch(e.target.value)}
                   placeholder="Search name, email, slug…"
-                  className="w-64 max-w-[55vw] rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
+                  className="w-full sm:w-64 max-w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
                 />
                 <button
                   onClick={onDiscover}
                   disabled={discoverLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
                 >
                   {discoverLoading ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaSearch className="h-3.5 w-3.5" />}
                   Search
@@ -796,6 +834,117 @@ export default function AgentsCabinPage() {
                       >
                         <FaPaperPlane className="h-3.5 w-3.5" />
                         {!!currentUserId && e.vendorId === currentUserId ? "You" : "Hire"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "work" && isAgent && (
+          <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <FaBriefcase className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <h2 className="text-sm font-bold text-slate-900 dark:text-white">Find Work</h2>
+              </div>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                <input
+                  value={workSearch}
+                  onChange={(e) => setWorkSearch(e.target.value)}
+                  placeholder="Search campaigns…"
+                  className="w-full sm:w-64 max-w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
+                />
+                <button
+                  onClick={onLoadWork}
+                  disabled={workLoading}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                >
+                  {workLoading ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaSearch className="h-3.5 w-3.5" />}
+                  Search
+                </button>
+              </div>
+            </div>
+
+            {workLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <FaSpinner className="h-6 w-6 animate-spin text-emerald-500" />
+              </div>
+            ) : workRows.length === 0 ? (
+              <div className="py-12 text-center">
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">No campaigns hiring right now</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  When vendors mark campaigns as “Hiring agents”, you’ll see them here (matched to your skills when possible).
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {workRows.map((c) => (
+                  <div
+                    key={c.id}
+                    className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/3 p-5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{c.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-3">{c.description}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                          By <span className="font-semibold text-slate-900 dark:text-white">{c.business?.name || "Vendor"}</span>
+                          {typeof c.matchScore === "number" && (
+                            <>
+                              {" "}· Match{" "}
+                              <span className="font-semibold text-emerald-700 dark:text-emerald-300">
+                                {c.matchScore}/{c.matchTotal || 0}
+                              </span>
+                            </>
+                          )}
+                        </p>
+                        {Array.isArray(c.hiringSkillsTags) && c.hiringSkillsTags.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {c.hiringSkillsTags.slice(0, 8).map((s: string) => (
+                              <span
+                                key={s}
+                                className="px-2 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {c.hiringNotes && (
+                          <div className="mt-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                              Notes
+                            </p>
+                            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-wrap">
+                              {c.hiringNotes}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            setApplyingCampaignId(c.id);
+                            const res = await applyToCampaignAsAgent(c.id);
+                            toast.success("Applied. The vendor has been notified.");
+                            setWorkRows((prev) => prev.filter((x) => x.id !== c.id));
+                            if (res?.conversationId) {
+                              // optional: could auto-open chat in a follow-up
+                            }
+                          } catch (e: any) {
+                            toast.error(e?.response?.data?.error || "Failed to apply");
+                          } finally {
+                            setApplyingCampaignId("");
+                          }
+                        }}
+                        disabled={applyingCampaignId === c.id}
+                        className="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-slate-950 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                      >
+                        {applyingCampaignId === c.id ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaPaperPlane className="h-3.5 w-3.5" />}
+                        {applyingCampaignId === c.id ? "Applying…" : "Apply"}
                       </button>
                     </div>
                   </div>
@@ -1035,7 +1184,7 @@ export default function AgentsCabinPage() {
                 </p>
               </div>
               <button
-                onClick={() => setTab("discover")}
+                onClick={() => setTab("work")}
                 className="px-3 py-2 rounded-xl text-xs font-semibold border bg-slate-50 dark:bg-white/3 border-slate-200 dark:border-white/8 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/6"
               >
                 Find more work
