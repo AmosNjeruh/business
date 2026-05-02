@@ -122,6 +122,9 @@ export default function AdminAuthPage() {
       try {
         window.localStorage.setItem(`t360:agentPrompted:${auth.user.id}`, "1");
         window.localStorage.removeItem(`t360:agentPromptEligible:${auth.user.id}`);
+        if (isAgent) {
+          sessionStorage.setItem("t360:showAgentBioOnLoad", auth.user.id);
+        }
       } catch {}
 
       // Step 2: Update vendor settings with business information
