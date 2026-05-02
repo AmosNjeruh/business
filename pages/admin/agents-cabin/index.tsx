@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import AdminLayout from "@/components/admin/Layout";
 import { checkAuth, getCurrentUser, setUser, setUserTypePreference } from "@/services/auth";
@@ -13,6 +13,7 @@ import {
   listMyHiredCampaigns,
   listAgentHiringOpportunities,
   applyToCampaignAsAgent,
+  updateCampaignHiringSettings,
   type AgentHireRow,
   type HiringWorkSample,
   type VendorHiringProfile,
@@ -64,6 +65,15 @@ export default function AgentsCabinPage() {
   const [discoverSearch, setDiscoverSearch] = useState("");
   const [experts, setExperts] = useState<HiringExpertListItem[]>([]);
 
+  /** Vendor discover: tie hiring requirements to a campaign (same data agents see on Find Work). */
+  const [discoverCampaigns, setDiscoverCampaigns] = useState<any[]>([]);
+  const [discoverCampaignsLoading, setDiscoverCampaignsLoading] = useState(false);
+  const [discoverPickCampaignId, setDiscoverPickCampaignId] = useState("");
+  const [discHireOpenToAgents, setDiscHireOpenToAgents] = useState(false);
+  const [discHireSkillsText, setDiscHireSkillsText] = useState("");
+  const [discHireNotes, setDiscHireNotes] = useState("");
+  const [discHireSaving, setDiscHireSaving] = useState(false);
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewExpert, setPreviewExpert] = useState<HiringExpertListItem | null>(null);
@@ -90,6 +100,8 @@ export default function AgentsCabinPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatText, setChatText] = useState("");
   const [chatSending, setChatSending] = useState(false);
+
+  const discoverExpertsSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -326,15 +338,117 @@ export default function AgentsCabinPage() {
     return () => window.clearTimeout(t);
   }, [justSaved]);
 
-  const onDiscover = async () => {
+  useEffect(() => {
+    if (tab !== "discover" || isAgent) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setDiscoverCampaignsLoading(true);
+        const res = await getCampaigns({ limit: 100 });
+        if (cancelled) return;
+        setDiscoverCampaigns(res?.data || []);
+      } catch {
+        if (!cancelled) setDiscoverCampaigns([]);
+      } finally {
+        if (!cancelled) setDiscoverCampaignsLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, isAgent]);
+
+  useEffect(() => {
+    if (!discoverPickCampaignId) {
+      setDiscHireOpenToAgents(false);
+      setDiscHireSkillsText("");
+      setDiscHireNotes("");
+      return;
+    }
+    const c = discoverCampaigns.find((x) => String(x.id) === String(discoverPickCampaignId));
+    if (!c) return;
+    setDiscHireOpenToAgents(!!c.isHiringAgents);
+    setDiscHireSkillsText(
+      Array.isArray(c.hiringSkillsTags) ? c.hiringSkillsTags.join(", ") : ""
+    );
+    setDiscHireNotes(typeof c.hiringNotes === "string" ? c.hiringNotes : "");
+  }, [discoverPickCampaignId, discoverCampaigns]);
+
+  const parseHiringExpertRows = (res: unknown): HiringExpertListItem[] => {
+    const r = res as { data?: unknown } | null | undefined;
+    if (Array.isArray(r?.data)) return r.data as HiringExpertListItem[];
+    const nested = r?.data as { data?: unknown } | undefined;
+    if (Array.isArray(nested?.data)) return nested.data as HiringExpertListItem[];
+    return [];
+  };
+
+  const loadDiscoverExperts = async (options?: { relaxSkillsIfEmpty?: boolean; scrollToResults?: boolean }) => {
     try {
       setDiscoverLoading(true);
-      const res = await listHiringExperts({ search: discoverSearch.trim(), limit: 30 });
-      setExperts(res.data || []);
+      const tags = discHireSkillsText
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const res = await listHiringExperts({
+        search: discoverSearch.trim() || undefined,
+        ...(tags.length ? { skills: tags.join(",") } : {}),
+        limit: 30,
+      });
+      let list = parseHiringExpertRows(res);
+      if (options?.relaxSkillsIfEmpty && list.length === 0 && tags.length > 0) {
+        const resLoose = await listHiringExperts({
+          search: discoverSearch.trim() || undefined,
+          limit: 30,
+        });
+        list = parseHiringExpertRows(resLoose);
+        if (list.length > 0) {
+          toast.success("No experts matched those skill tags yet—showing all discoverable experts.");
+        }
+      }
+      setExperts(list);
+      if (options?.scrollToResults && typeof window !== "undefined") {
+        window.requestAnimationFrame(() => {
+          discoverExpertsSectionRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        });
+      }
     } catch (e: any) {
       toast.error(e?.response?.data?.error || "Failed to load experts");
     } finally {
       setDiscoverLoading(false);
+    }
+  };
+
+  const saveDiscoverCampaignHiring = async () => {
+    if (!discoverPickCampaignId) {
+      toast.error("Select a campaign first.");
+      return;
+    }
+    const hiringSkillsTags = discHireSkillsText
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    setDiscHireSaving(true);
+    try {
+      const updated = await updateCampaignHiringSettings(discoverPickCampaignId, {
+        isHiringAgents: discHireOpenToAgents,
+        hiringSkillsTags,
+        hiringNotes: discHireNotes.trim() ? discHireNotes.trim() : null,
+      });
+      setDiscoverCampaigns((prev) =>
+        prev.map((c) =>
+          String(c.id) === String(discoverPickCampaignId) ? { ...c, ...updated } : c
+        )
+      );
+      toast.success("Campaign requirements saved.");
+      await loadDiscoverExperts({ relaxSkillsIfEmpty: true, scrollToResults: true });
+    } catch (e: any) {
+      toast.error(e?.response?.data?.error || "Failed to save campaign hiring");
+    } finally {
+      setDiscHireSaving(false);
     }
   };
 
@@ -403,7 +517,7 @@ export default function AgentsCabinPage() {
 
   useEffect(() => {
     if (tab !== "discover") return;
-    onDiscover();
+    void loadDiscoverExperts();
   }, [tab]);
 
   useEffect(() => {
@@ -426,7 +540,7 @@ export default function AgentsCabinPage() {
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
                 {isAgent
                   ? "Build your expert portfolio and manage your hires from vendors."
-                  : "Discover professionals you can hire for campaign execution."}
+                  : "Set campaign niche/skills to match experts; agents browse all vendor campaigns on Find Work and apply—this section does not hide campaigns."}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -723,6 +837,120 @@ export default function AgentsCabinPage() {
 
         {tab === "discover" && !isAgent && (
           <div className="rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-6 shadow-sm">
+            <div className="mb-6 rounded-2xl border border-emerald-200/70 dark:border-emerald-500/25 bg-emerald-50/40 dark:bg-emerald-500/10 p-5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
+                Step 1 · Campaign requirements
+              </p>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-1">
+                Niche, skills, and what you need from agents
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                All of your campaigns are available to agents in{" "}
+                <span className="font-semibold text-slate-800 dark:text-slate-200">Find Work</span>—nothing here
+                gates visibility. Use the checkmark to flag active recruiting, and add skills/notes so the right
+                agents self-select and you can filter experts below.
+              </p>
+
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                    Campaign
+                  </label>
+                  <select
+                    value={discoverPickCampaignId}
+                    onChange={(e) => setDiscoverPickCampaignId(e.target.value)}
+                    disabled={discoverCampaignsLoading}
+                    className="w-full max-w-xl rounded-xl border border-slate-300 bg-white text-slate-900 shadow-sm text-sm px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-500/25 focus:border-emerald-500/50 disabled:opacity-60 [color-scheme:light] dark:border-slate-500/60 dark:bg-slate-900 dark:text-slate-100 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] dark:[color-scheme:dark]"
+                  >
+                    <option value="">Select a campaign…</option>
+                    {discoverCampaigns.map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title || "Untitled"} · {String(c.status || "")}
+                        {c.isHiringAgents ? " · Recruiting" : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {!discoverCampaignsLoading && discoverCampaigns.length === 0 && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      No campaigns yet.{" "}
+                      <a href="/admin/campaigns" className="font-semibold text-emerald-700 dark:text-emerald-300 hover:underline">
+                        Create a campaign
+                      </a>{" "}
+                      first.
+                    </p>
+                  )}
+                </div>
+
+                {discoverPickCampaignId ? (
+                  <>
+                    <label className="flex items-start gap-3 cursor-pointer rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 p-3">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        checked={discHireOpenToAgents}
+                        onChange={(e) => setDiscHireOpenToAgents(e.target.checked)}
+                      />
+                      <span className="text-xs text-slate-700 dark:text-slate-300">
+                        <span className="font-semibold text-slate-900 dark:text-white">We’re actively recruiting for this campaign</span>
+                        <span className="block text-slate-500 dark:text-slate-400 mt-0.5">
+                          Optional signal for you and agents; it does not control whether the campaign shows on Find
+                          Work.
+                        </span>
+                      </span>
+                    </label>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Niche / required skills (comma-separated)
+                      </label>
+                      <input
+                        value={discHireSkillsText}
+                        onChange={(e) => setDiscHireSkillsText(e.target.value)}
+                        placeholder="e.g. TikTok, UGC, beauty, performance marketing"
+                        className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
+                      />
+                      <p className="text-[11px] text-slate-500 dark:text-slate-500 mt-1">
+                        Used to rank agents on Find Work and to filter the expert list when you search below.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-1">
+                        Requirements for this campaign (optional)
+                      </label>
+                      <textarea
+                        value={discHireNotes}
+                        onChange={(e) => setDiscHireNotes(e.target.value)}
+                        rows={3}
+                        placeholder="Deliverables, timeline, audience, languages…"
+                        className="w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white p-3 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void saveDiscoverCampaignHiring()}
+                        disabled={discHireSaving}
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
+                      >
+                        {discHireSaving ? <FaSpinner className="h-3.5 w-3.5 animate-spin" /> : <FaSave className="h-3.5 w-3.5" />}
+                        {discHireSaving ? "Saving…" : "Save campaign hiring"}
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              id="discover-experts"
+              ref={discoverExpertsSectionRef}
+              className="scroll-mt-24"
+            >
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-500 mb-3">
+              Step 2 · Discover experts
+            </p>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <FaSearch className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -736,7 +964,7 @@ export default function AgentsCabinPage() {
                   className="w-full sm:w-64 max-w-full rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm text-slate-900 dark:text-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-emerald-400/20 focus:border-emerald-400/60"
                 />
                 <button
-                  onClick={onDiscover}
+                  onClick={() => void loadDiscoverExperts()}
                   disabled={discoverLoading}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
                 >
@@ -754,7 +982,7 @@ export default function AgentsCabinPage() {
               <div className="py-12 text-center">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">No experts found</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  Try a different search or ask experts to enable agent preference.
+                  Try clearing niche/skills above, widen search, or ask experts to enable agent preference.
                 </p>
               </div>
             ) : (
@@ -840,6 +1068,7 @@ export default function AgentsCabinPage() {
                 ))}
               </div>
             )}
+            </div>
           </div>
         )}
 
@@ -876,7 +1105,8 @@ export default function AgentsCabinPage() {
               <div className="py-12 text-center">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">No campaigns hiring right now</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  When vendors mark campaigns as “Hiring agents”, you’ll see them here (matched to your skills when possible).
+                  Vendors’ active campaigns appear here. When a campaign lists niche/skills, better portfolio matches
+                  rank higher. Apply to send your interest; the vendor can shortlist or hire you as before.
                 </p>
               </div>
             ) : (
