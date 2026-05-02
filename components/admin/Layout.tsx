@@ -26,6 +26,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const assistantResizeSkipFirst = useRef(true);
   const [showAgentPrompt, setShowAgentPrompt] = useState(false);
   const [agentPromptSaving, setAgentPromptSaving] = useState(false);
+  const [showAgentBioPrompt, setShowAgentBioPrompt] = useState(false);
 
   useEffect(() => {
     const user = getCurrentUser();
@@ -61,6 +62,52 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       cancelled = true;
     };
   }, []);
+
+  // One-time prompt after switching to Agent mode (or registering as Agent): nudge portfolio/bio.
+  useEffect(() => {
+    const user = getCurrentUser();
+    if (!user?.id || String(user.role) !== "VENDOR") return;
+    try {
+      const pending = sessionStorage.getItem("t360:showAgentBioOnLoad");
+      if (pending === user.id) {
+        sessionStorage.removeItem("t360:showAgentBioOnLoad");
+        const key = `t360:agentBioPromptShown:${user.id}`;
+        if (window.localStorage.getItem(key) === "1") return;
+        setShowAgentBioPrompt(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    const onAgentMode = (e: Event) => {
+      const ce = e as CustomEvent<{ userId?: string }>;
+      const userId = ce.detail?.userId;
+      const u = getCurrentUser();
+      if (!userId || u?.id !== userId) return;
+      const key = `t360:agentBioPromptShown:${userId}`;
+      if (window.localStorage.getItem(key) === "1") return;
+      setShowAgentBioPrompt(true);
+    };
+    window.addEventListener("t360:agent-mode-on", onAgentMode as EventListener);
+    return () => window.removeEventListener("t360:agent-mode-on", onAgentMode as EventListener);
+  }, []);
+
+  const dismissAgentBioPrompt = (goToPortfolio: boolean) => {
+    const user = getCurrentUser();
+    if (user?.id) {
+      try {
+        window.localStorage.setItem(`t360:agentBioPromptShown:${user.id}`, "1");
+      } catch {
+        // ignore
+      }
+    }
+    setShowAgentBioPrompt(false);
+    if (goToPortfolio) {
+      router.push("/admin/agents-cabin");
+    }
+  };
 
   const decideAgent = async (pref: "VENDOR" | "AGENT") => {
     const user = getCurrentUser();
@@ -205,6 +252,36 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 text-slate-950 text-xs font-semibold hover:opacity-90 disabled:opacity-60"
               >
                 Agent
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showAgentBioPrompt && (
+        <div className="fixed inset-0 z-[62] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-950 p-6 shadow-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">
+              Hiring profile
+            </p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mt-1">Stand out to clients</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+              Add a short bio and skills in your Agents portfolio so other vendors can learn what you do and
+              hire you with confidence. You only see this reminder once.
+            </p>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={() => dismissAgentBioPrompt(false)}
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/10"
+              >
+                Later
+              </button>
+              <button
+                type="button"
+                onClick={() => dismissAgentBioPrompt(true)}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-500 text-slate-950 text-xs font-semibold hover:opacity-90"
+              >
+                Open portfolio
               </button>
             </div>
           </div>

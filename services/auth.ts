@@ -57,7 +57,18 @@ export const setUserTypePreference = async (userTypePreference: "VENDOR" | "AGEN
   const response = await Api.put<{ data: { user: any } }>('/auth/user-type-preference', {
     userTypePreference,
   });
-  return response.data.data;
+  const data = response.data.data;
+  // Let AdminLayout show a one-time "update your bio" prompt (same idea as the Agent/Marketer dialog).
+  if (userTypePreference === 'AGENT' && data?.user?.id && typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('t360:agent-mode-on', { detail: { userId: data.user.id } })
+      );
+    } catch {
+      // ignore
+    }
+  }
+  return data;
 };
 
 /**
