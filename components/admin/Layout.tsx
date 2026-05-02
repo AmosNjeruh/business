@@ -191,7 +191,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
         />
-        <div className="absolute inset-x-0 bottom-0 left-0 top-16 z-0 flex min-h-0 flex-col overflow-hidden sm:left-64 sm:top-20">
+        <div className="absolute inset-x-0 bottom-0 left-0 top-16 flex min-h-0 flex-col overflow-hidden sm:left-64 sm:top-20">
           <div className="flex min-h-0 min-w-0 flex-1 flex-row items-stretch overflow-hidden">
             <main className="min-h-0 min-w-0 max-w-full flex-1 basis-0 overflow-y-auto overflow-x-auto overscroll-y-contain">
               <div className="box-border min-h-0 min-w-0 max-w-full w-full p-3 sm:p-4 lg:p-6">
@@ -291,7 +291,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         Absolute inset (below fixed header, right of sidebar on sm+) gives a definite height so
         <main> overflow-y-auto works. Flex + fixed siblings was collapsing / growing with content.
       */}
-      <div className="absolute inset-x-0 bottom-0 left-0 top-16 z-0 flex min-h-0 flex-col overflow-hidden sm:left-64 sm:top-20">
+      <div className="absolute inset-x-0 bottom-0 left-0 top-16 flex min-h-0 flex-col overflow-hidden sm:left-64 sm:top-20">
         <div className="flex min-h-0 min-w-0 flex-1 flex-row items-stretch overflow-hidden">
           <main className="min-h-0 min-w-0 max-w-full flex-1 basis-0 overflow-y-auto overflow-x-auto overscroll-y-contain">
             <div className="@container/bus-main box-border min-h-0 min-w-0 max-w-full w-full p-3 sm:p-4 lg:p-6 [&>*]:min-w-0 [&>*]:max-w-full">

@@ -1164,7 +1164,7 @@ const WorkValidationPage: React.FC = () => {
 
       {/* Bulk Approve Confirmation Modal */}
       {showBulkApproveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onClick={() => setShowBulkApproveModal(false)} />
           <div className="relative w-full max-w-sm rounded-2xl border border-green-200 dark:border-green-500/20 bg-white dark:bg-slate-900 p-6 shadow-2xl">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Approve Work</h2>
@@ -1193,7 +1193,7 @@ const WorkValidationPage: React.FC = () => {
 
       {/* Quick Preview Modal */}
       {showQuickPreview && quickPreviewApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onClick={() => setShowQuickPreview(null)} />
           <div className="relative w-full max-w-4xl max-h-[90vh] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl overflow-hidden flex flex-col">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -1268,7 +1268,7 @@ const WorkValidationPage: React.FC = () => {
 
       {/* Keyboard Shortcuts Modal */}
       {showKeyboardShortcuts && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm" onClick={() => setShowKeyboardShortcuts(false)} />
           <div className="relative w-full max-w-md rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-2xl p-6">
             <div className="flex items-center justify-between mb-4">

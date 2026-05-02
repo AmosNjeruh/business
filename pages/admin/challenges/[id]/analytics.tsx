@@ -260,7 +260,7 @@ export default function ChallengeAnalyticsPage() {
     [social]
   );
 
-  // Per-platform stats computed from approved submissions
+  // Per-platform stats from the current page of approved submissions (fallback when social metrics unavailable)
   const approvedByPlatform = useMemo(() => {
     const map: Record<string, { platform: string; posts: number; totalMetric: number; partners: Set<string> }> = {};
     for (const s of approvedSubs) {
@@ -272,6 +272,27 @@ export default function ChallengeAnalyticsPage() {
     }
     return Object.values(map).sort((a, b) => b.totalMetric - a.totalMetric);
   }, [approvedSubs]);
+
+  // Prefer full social-metrics byPlatform (all approved, from DB) over the paginated approvedSubs slice
+  const platformPostCounts = useMemo(() => {
+    if (byPlatform.length > 0) {
+      return byPlatform.map((p) => ({
+        platform: String(p.platform),
+        posts: p.posts ?? 0,
+        totalMetric: Math.max(
+          (p as any).reach ?? 0,
+          (p as any).views ?? 0,
+          (p as any).impressions ?? 0,
+          (p as any).likes ?? 0,
+        ),
+      })).filter((p) => p.posts > 0).sort((a, b) => b.posts - a.posts);
+    }
+    return approvedByPlatform.map((p) => ({
+      platform: p.platform,
+      posts: p.posts,
+      totalMetric: p.totalMetric,
+    }));
+  }, [byPlatform, approvedByPlatform]);
 
   const pieData = useMemo(() => {
     // Prefer social-metrics byPlatform for reach/views; fall back to approved-subs platform split
@@ -353,16 +374,16 @@ export default function ChallengeAnalyticsPage() {
       out.push(`Top performer: ${top.partnerName} at ${top.percentComplete?.toFixed(1) ?? 0}% of goal.`);
     }
     if (approvedTotal > 0) {
-      out.push(`${approvedTotal} approved post${approvedTotal !== 1 ? 's' : ''} across ${approvedByPlatform.length} platform${approvedByPlatform.length !== 1 ? 's' : ''}.`);
+      out.push(`${approvedTotal} approved post${approvedTotal !== 1 ? 's' : ''} across ${platformPostCounts.length} platform${platformPostCounts.length !== 1 ? 's' : ''}.`);
     }
-    if (approvedByPlatform.length > 0) {
-      const best = approvedByPlatform[0]!;
-      out.push(`${platformLabel(best.platform)} leads with ${best.posts} approved post${best.posts !== 1 ? 's' : ''} and ${fmtNum(best.totalMetric)} metric units.`);
+    if (platformPostCounts.length > 0) {
+      const best = platformPostCounts[0]!;
+      out.push(`${platformLabel(best.platform)} leads with ${best.posts} approved post${best.posts !== 1 ? 's' : ''}${best.totalMetric > 0 ? ` and ${fmtNum(best.totalMetric)} metric units` : ''}.`);
     }
-    if (cpm) out.push(`Estimated CPM: ${cpm} (prize budget vs aggregate impressions).`);
+    if (cpm) out.push(`Estimated CPM: ${cpm} (prize budget vs aggregate impressions from approved posts).`);
     if (completionRate > 0) out.push(`${completionRate}% of participants hit their goal (${goalReached}/${participants}).`);
     return out.slice(0, 5);
-  }, [leaderboard, approvedTotal, approvedByPlatform, cpm, completionRate, goalReached, participants]);
+  }, [leaderboard, approvedTotal, platformPostCounts, cpm, completionRate, goalReached, participants]);
 
   // ── Loading state ──────────────────────────────────────────────────────────
   if (loading || !challenge) {
@@ -408,7 +429,10 @@ export default function ChallengeAnalyticsPage() {
                 <h1 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white truncate">{challenge.title}</h1>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 shrink-0">
+            <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 shrink-0 flex-wrap">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-400 font-semibold text-[10px]">
+                <FaCheckCircle size={8} /> Approved posts only
+              </span>
               <FaBolt size={10} className="text-orange-400" />
               {challenge.metricType}
               <span className="hidden sm:inline">·</span>
@@ -526,12 +550,12 @@ export default function ChallengeAnalyticsPage() {
                     <span className="font-semibold text-gray-900 dark:text-white">{challenge.goalValue?.toLocaleString()}</span>
                   </p>
 
-                  {/* Approved-posts platform mini-bar */}
-                  {approvedByPlatform.length > 0 && (
+                  {/* Approved-posts platform mini-bar — uses full social-metrics data when available */}
+                  {platformPostCounts.length > 0 && (
                     <div className="mt-4 space-y-2">
                       <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Approved posts by platform</p>
-                      {approvedByPlatform.map((p) => {
-                        const max = approvedByPlatform[0]!.posts;
+                      {platformPostCounts.map((p) => {
+                        const max = platformPostCounts[0]!.posts;
                         return (
                           <div key={p.platform} className="flex items-center gap-3">
                             <PlatformBadge platform={p.platform} />
@@ -552,7 +576,7 @@ export default function ChallengeAnalyticsPage() {
 
               {/* Social totals strip */}
               {totals && (totals.posts > 0 || totals.reach > 0 || totals.likes > 0) && (
-                <Section title="Social aggregate" subtitle="Across all validated posts from participants" icon={<FaChartBar size={13} />}>
+                <Section title="Social aggregate" subtitle="Approved posts only — all metrics are gated to moderation-approved submissions" icon={<FaChartBar size={13} />}>
                   <div className="flex flex-wrap gap-x-6 gap-y-3">
                     {[
                       { label: 'Posts',        value: totals.posts },
@@ -590,7 +614,7 @@ export default function ChallengeAnalyticsPage() {
 
               {/* Platform donut */}
               {pieData.length > 0 && (
-                <Section title="Platform distribution" subtitle="Strongest signal per platform (reach / views / impressions / likes / post count)" icon={<FaChartBar size={13} />}>
+                <Section title="Platform distribution" subtitle="Approved posts only — strongest signal per platform (reach / views / impressions / likes / post count)" icon={<FaChartBar size={13} />}>
                   <div className="flex flex-col sm:flex-row items-center gap-6">
                     <div className="relative w-full max-w-[240px] h-[240px] mx-auto sm:mx-0 shrink-0">
                       <ResponsiveContainer width="100%" height="100%">
@@ -629,7 +653,7 @@ export default function ChallengeAnalyticsPage() {
 
               {/* Platform bar chart */}
               {platformBarData.length > 0 && (
-                <Section title="Platform metrics comparison" subtitle="Posts, reach, likes, comments, shares per platform">
+                <Section title="Platform metrics comparison" subtitle="Approved posts only — posts, reach, likes, comments, shares per platform">
                   <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={platformBarData} margin={{ top: 8, right: 16, left: -8, bottom: 8 }} barCategoryGap="25%">
@@ -651,7 +675,7 @@ export default function ChallengeAnalyticsPage() {
 
               {/* Platform detail table */}
               {byPlatform.length > 0 && (
-                <Section title="Platform data table" subtitle="Full metrics from social API">
+                <Section title="Platform data table" subtitle="Approved posts only — full metrics from social API">
                   <div className="overflow-x-auto">
                     <table className="min-w-full text-xs">
                       <thead>
@@ -680,9 +704,9 @@ export default function ChallengeAnalyticsPage() {
                 </Section>
               )}
 
-              {byPlatform.length === 0 && approvedByPlatform.length === 0 && (
+              {byPlatform.length === 0 && platformPostCounts.length === 0 && (
                 <div className="text-center py-16 text-gray-400 dark:text-gray-500 text-sm">
-                  Platform data will appear once participants submit validated posts.
+                  Platform data will appear once approved posts are available.
                 </div>
               )}
             </div>
@@ -706,13 +730,13 @@ export default function ChallengeAnalyticsPage() {
                   </button>
                 }
               >
-                {/* Platform filter mini-chips from approved subs */}
-                {approvedByPlatform.length > 0 && (
+                {/* Platform summary chips — uses full approved data from social metrics when available */}
+                {platformPostCounts.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-4 pb-4 border-b border-gray-100 dark:border-gray-700">
-                    {approvedByPlatform.map((p) => (
+                    {platformPostCounts.map((p) => (
                       <span key={p.platform} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
                         <PlatformBadge platform={p.platform} />
-                        <span className="font-bold">{p.posts}</span> posts
+                        <span className="font-bold">{p.posts}</span> approved
                         {p.totalMetric > 0 && <span className="text-gray-400">· {fmtNum(p.totalMetric)} metric</span>}
                       </span>
                     ))}

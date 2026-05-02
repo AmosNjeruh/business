@@ -107,7 +107,9 @@ export interface ChallengeSubmission {
   note?: string;
   status: SubmissionStatus;
   detectedMetricValue?: number;
+  detectedPlatform?: string;
   rejectionReason?: string;
+  adminReviewNote?: string;
   reviewedAt?: string;
   createdAt: string;
   partner?: { id: string; name: string; picture?: string; email?: string };
@@ -498,4 +500,57 @@ export const adminGetFraudFlags = async (challengeId: string) => {
 export const adminRefreshLeaderboard = async (challengeId: string) => {
   const response = await Api.post(`/finalboss/challenges/${challengeId}/leaderboard/refresh`);
   return response.data.data;
+};
+
+// ─── Vendor – Submission Review ───────────────────────────────────────────────
+
+/** Review a single submission as the brand vendor (approve / reject / flag). */
+export const vendorReviewSubmission = async (
+  submissionId: string,
+  payload: { status: SubmissionStatus; rejectionReason?: string; detectedMetricValue?: number }
+) => {
+  const response = await Api.post(`/vendor/challenges/submissions/${submissionId}/review`, payload);
+  return response.data.data;
+};
+
+/** Bulk-reject duplicate submissions — sends a single notification/email for the batch. */
+export const vendorBulkRejectSubmissions = async (payload: {
+  submissionIds: string[];
+  rejectionReason: string;
+}) => {
+  const response = await Api.post('/vendor/challenges/submissions/bulk-reject', payload);
+  return response.data.data;
+};
+
+// ─── Vendor – Leaderboard (full live data) ────────────────────────────────────
+
+/** Full live leaderboard including approvedSubmissions per entry (for duplicate management). */
+export const vendorGetDetailedLeaderboard = async (challengeId: string) => {
+  const response = await Api.get(`/vendor/challenges/${challengeId}/leaderboard`);
+  return response.data.data as {
+    challengeId: string;
+    entries: LeaderboardEntry[];
+    snapshotAt: string;
+    isCached: boolean;
+  };
+};
+
+/** Manually trigger a fresh leaderboard snapshot. */
+export const vendorRefreshLeaderboard = async (challengeId: string) => {
+  const response = await Api.post(`/vendor/challenges/${challengeId}/leaderboard/refresh`);
+  return response.data.data;
+};
+
+// ─── Vendor – Fraud & Payouts ─────────────────────────────────────────────────
+
+/** Fraud-flagged participations for a vendor-owned challenge. */
+export const vendorGetFraudFlags = async (challengeId: string) => {
+  const response = await Api.get(`/vendor/challenges/${challengeId}/fraud-flags`);
+  return response.data.data as any[];
+};
+
+/** Payout records for a vendor-owned challenge (read-only). */
+export const vendorGetChallengePayouts = async (challengeId: string) => {
+  const response = await Api.get(`/vendor/challenges/${challengeId}/payouts`);
+  return response.data.data as ChallengePayout[];
 };

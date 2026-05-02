@@ -278,7 +278,7 @@ const PostPreviewModal: React.FC<PostPreviewProps> = ({
   const isPending = ["PENDING", "PENDING_REVIEW"].includes(submission.status);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-md" onClick={onClose} />
       <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl">
         {/* Header */}

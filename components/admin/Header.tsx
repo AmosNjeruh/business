@@ -278,7 +278,7 @@ const Header: React.FC<HeaderProps> = ({
     : "BS";
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-16 sm:h-20 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-white/8 flex items-center transition-colors duration-200">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 sm:h-20 bg-white/97 dark:bg-[#0c1221]/97 backdrop-blur-xl border-b border-slate-200/60 dark:border-slate-700/25 shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_1px_rgba(0,0,0,0.03)] dark:shadow-[0_1px_6px_rgba(0,0,0,0.35)] flex items-center transition-colors duration-200">
       <div className="flex items-center justify-between w-full px-3 sm:px-4 lg:px-6">
         {/* Left – logo + mobile menu toggle */}
         <div className="flex items-center gap-3">
@@ -289,15 +289,22 @@ const Header: React.FC<HeaderProps> = ({
             <FaBars className="h-4 w-4" />
           </button>
 
-          <Link href="/admin" className="flex items-center gap-2">
-            <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white tracking-tight">
-                Trend360
-              </span>
-              <span className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-medium">
+          <Link href="/admin" className="flex items-center gap-2.5 sm:gap-3">
+            {/* Light-mode logo */}
+            <img
+              src="/logo-dark.png"
+              alt="Trend360"
+              className="h-9 sm:h-11 w-auto object-contain dark:hidden"
+            />
+            {/* Dark-mode logo */}
+            <img
+              src="/logo.png"
+              alt="Trend360"
+              className="h-9 sm:h-11 w-auto object-contain hidden dark:block"
+            />
+            <span className="hidden sm:block text-[11px] font-semibold text-slate-500 dark:text-slate-400 tracking-widest uppercase border-l border-slate-200 dark:border-slate-700/60 pl-3 leading-none">
               Business Suite
-              </span>
-            </div>
+            </span>
           </Link>
         </div>
 
@@ -308,13 +315,13 @@ const Header: React.FC<HeaderProps> = ({
             <div className="relative">
               <button
                 onClick={() => setShowBrandMenu(!showBrandMenu)}
-                className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 hover:bg-slate-200 dark:hover:bg-white/8 transition-colors"
+                className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 rounded-lg bg-slate-100/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/40 hover:bg-slate-200/60 dark:hover:bg-slate-700/50 transition-all duration-150 shadow-sm dark:shadow-none"
               >
                 <FaBuilding className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-emerald-500 flex-shrink-0" />
-                <span className="text-[10px] sm:text-xs font-medium text-slate-900 dark:text-white max-w-[80px] sm:max-w-[120px] truncate">
+                <span className="text-[10px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[80px] sm:max-w-[120px] truncate tracking-tight">
                   {selectedBrand?.name || "Select Brand"}
                 </span>
-                <FaChevronDown className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-slate-400 flex-shrink-0" />
+                <FaChevronDown className="h-2 w-2 sm:h-2.5 sm:w-2.5 text-slate-400 dark:text-slate-500 flex-shrink-0" />
               </button>
               {showBrandMenu && (
                 <>
@@ -322,9 +329,9 @@ const Header: React.FC<HeaderProps> = ({
                     className="fixed inset-0 z-10"
                     onClick={() => setShowBrandMenu(false)}
                   />
-                  <div className="absolute left-0 top-full mt-1.5 z-20 w-[calc(100vw-2rem)] sm:w-64 md:w-72 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl overflow-hidden">
-                    <div className="px-3 py-2 border-b border-slate-200 dark:border-white/8">
-                      <p className="text-xs font-semibold text-slate-900 dark:text-white">Switch Brand</p>
+                  <div className="absolute left-0 top-full mt-2 z-20 w-[calc(100vw-2rem)] sm:w-64 md:w-72 rounded-xl border border-slate-200/70 dark:border-slate-700/40 bg-white dark:bg-[#111827] shadow-xl shadow-black/8 dark:shadow-black/50 overflow-hidden">
+                    <div className="px-3.5 py-2.5 border-b border-slate-200/60 dark:border-slate-700/30 bg-slate-50/50 dark:bg-slate-800/20">
+                      <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-200 tracking-tight">Switch Brand</p>
                     </div>
                     <div className="max-h-64 overflow-y-auto">
                       {brands.map((brand) => (
@@ -364,20 +371,20 @@ const Header: React.FC<HeaderProps> = ({
           {/* Quick search hint */}
           <button
             onClick={() => setShowSearch(true)}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/8 cursor-pointer hover:bg-slate-200 dark:hover:bg-white/8 transition-colors flex-1 text-left"
+            className="hidden sm:flex items-center gap-2.5 px-3.5 py-1.5 rounded-lg bg-slate-100/70 dark:bg-slate-800/40 border border-slate-200/70 dark:border-slate-700/35 cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700/40 transition-all duration-150 flex-1 text-left shadow-sm dark:shadow-none group"
           >
-            <FaSearch className="h-3.5 w-3.5 text-slate-400 flex-shrink-0" />
-            <span className="text-xs text-slate-400 dark:text-slate-500 flex-1">
+            <FaSearch className="h-3 w-3 text-slate-400 dark:text-slate-500 group-hover:text-slate-500 dark:group-hover:text-slate-400 flex-shrink-0 transition-colors" />
+            <span className="text-[11px] text-slate-400 dark:text-slate-500 flex-1 font-medium">
               Search anything…
             </span>
-            <kbd className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10">
+            <kbd className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono text-slate-400 dark:text-slate-600 bg-white dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/50 shadow-[0_1px_1px_rgba(0,0,0,0.05)]">
               ⌘K
             </kbd>
           </button>
         </div>
 
         {/* Right – AI assistant + theme toggle + notifications + user */}
-        <div className="flex items-center gap-1 sm:gap-1.5">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           <button
             type="button"
             onClick={() => {
@@ -403,14 +410,14 @@ const Header: React.FC<HeaderProps> = ({
                 : "Vendor Premium required for AI assistant"
             }
             aria-pressed={aiAssistantOpen}
-            className={`relative p-2 rounded-lg transition-colors ${
+            className={`relative p-2 rounded-lg transition-all duration-150 ${
               aiAssistantOpen
-                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/15"
-                : "text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100 dark:hover:bg-white/5"
+                ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/[0.12]"
+                : "text-slate-400 dark:text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/50"
             }`}
           >
             <FaRobot
-              className={`h-4 w-4 ${
+              className={`h-[15px] w-[15px] ${
                 aiAssistantOpen
                   ? "drop-shadow-[0_0_10px_rgba(16,185,129,0.95)] dark:drop-shadow-[0_0_12px_rgba(52,211,153,0.9)]"
                   : "assistant-header-robot-glow"
@@ -422,12 +429,12 @@ const Header: React.FC<HeaderProps> = ({
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="relative p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+            className="relative p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-150"
           >
             {theme === "dark" ? (
-              <FaSun className="h-4 w-4" />
+              <FaSun className="h-[15px] w-[15px]" />
             ) : (
-              <FaMoon className="h-4 w-4" />
+              <FaMoon className="h-[15px] w-[15px]" />
             )}
           </button>
 
@@ -435,20 +442,20 @@ const Header: React.FC<HeaderProps> = ({
           <Link
             href="/admin/api-access"
             title="API Access & Developer Portal"
-            className="hidden sm:flex p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+            className="hidden sm:flex p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-150"
           >
-            <FaCode className="h-4 w-4" />
+            <FaCode className="h-[15px] w-[15px]" />
           </Link>
 
           {/* Notifications */}
           <div className="relative">
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+              className="relative p-2 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-150"
             >
-              <FaBell className="h-4 w-4" />
+              <FaBell className="h-[15px] w-[15px]" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 text-[8px] font-bold text-white flex items-center justify-center">
+                <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 shadow-[0_0_0_1.5px_white] dark:shadow-[0_0_0_1.5px_#0c1221] text-[8px] font-bold text-white flex items-center justify-center">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
@@ -459,9 +466,9 @@ const Header: React.FC<HeaderProps> = ({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowNotifications(false)}
                 />
-                <div className="absolute right-0 top-full mt-1.5 z-20 w-80 sm:w-96 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl shadow-black/10 dark:shadow-black/40 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-200 dark:border-white/8 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</p>
+                <div className="absolute right-0 top-full mt-2 z-20 w-80 sm:w-96 rounded-xl border border-slate-200/70 dark:border-slate-700/40 bg-white dark:bg-[#111827] shadow-xl shadow-black/8 dark:shadow-black/50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-200/60 dark:border-slate-700/30 bg-slate-50/50 dark:bg-slate-800/20 flex items-center justify-between">
+                    <p className="text-[13px] font-semibold text-slate-800 dark:text-slate-100 tracking-tight">Notifications</p>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllAsRead}
@@ -542,23 +549,23 @@ const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* User dropdown */}
-          <div className="relative">
+          <div className="relative ml-1">
             <button
               onClick={() => setShowUserMenu(!showUserMenu)}
-              className="flex items-center gap-2 px-2 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+              className="flex items-center gap-2 pl-1.5 pr-2 py-1.5 rounded-xl hover:bg-slate-100/80 dark:hover:bg-slate-800/50 transition-all duration-150"
             >
-              <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-[10px] font-bold text-slate-950">
+              <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-emerald-400 to-cyan-500 flex items-center justify-center text-[10px] font-bold text-slate-950 shadow-[0_0_0_2px_white] dark:shadow-[0_0_0_2px_#0c1221]">
                 {initials}
               </div>
               <div className="hidden sm:flex flex-col items-start leading-tight">
-                <span className="text-xs font-semibold text-slate-900 dark:text-white max-w-[120px] truncate">
+                <span className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 max-w-[120px] truncate tracking-tight">
                   {user?.name || user?.email || "Agency User"}
                 </span>
-                <span className="text-[10px] text-slate-400 dark:text-slate-500 capitalize">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 capitalize font-medium">
                   {(user?.role || "agency")?.toLowerCase()}
                 </span>
               </div>
-              <FaChevronDown className="h-2.5 w-2.5 text-slate-400 dark:text-slate-500" />
+              <FaChevronDown className="h-2 w-2 text-slate-400 dark:text-slate-500" />
             </button>
 
             {showUserMenu && (
@@ -567,42 +574,42 @@ const Header: React.FC<HeaderProps> = ({
                   className="fixed inset-0 z-10"
                   onClick={() => setShowUserMenu(false)}
                 />
-                <div className="absolute right-0 top-full mt-1.5 z-20 w-52 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-xl shadow-black/10 dark:shadow-black/40 overflow-hidden">
-                  <div className="px-3 py-2.5 border-b border-slate-200 dark:border-white/8">
-                    <p className="text-xs font-semibold text-slate-900 dark:text-white truncate">
+                <div className="absolute right-0 top-full mt-2 z-20 w-52 rounded-xl border border-slate-200/70 dark:border-slate-700/40 bg-white dark:bg-[#111827] shadow-xl shadow-black/8 dark:shadow-black/50 overflow-hidden">
+                  <div className="px-3.5 py-3 border-b border-slate-200/60 dark:border-slate-700/30 bg-slate-50/50 dark:bg-slate-800/20">
+                    <p className="text-[12px] font-semibold text-slate-800 dark:text-slate-100 truncate tracking-tight">
                       {user?.name || "Agency User"}
                     </p>
-                    <p className="text-[10px] text-slate-400 truncate">
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
                       {user?.email}
                     </p>
                   </div>
                   <Link
                     href="/admin/settings"
                     onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-all duration-100"
                   >
-                    <FaCog className="h-3.5 w-3.5" /> Settings
+                    <FaCog className="h-3 w-3 text-slate-400 dark:text-slate-500" /> Settings
                   </Link>
                   <Link
                     href="/admin/settings"
                     onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-all duration-100"
                   >
-                    <FaUser className="h-3.5 w-3.5" /> Profile
+                    <FaUser className="h-3 w-3 text-slate-400 dark:text-slate-500" /> Profile
                   </Link>
                   <Link
                     href="/admin/api-access"
                     onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5 transition-colors"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 text-[12px] text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-all duration-100"
                   >
-                    <FaCode className="h-3.5 w-3.5" /> API Access
+                    <FaCode className="h-3 w-3 text-slate-400 dark:text-slate-500" /> API Access
                   </Link>
-                  <div className="border-t border-slate-200 dark:border-white/8">
+                  <div className="border-t border-slate-200/60 dark:border-slate-700/30">
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2.5 w-full px-3 py-2.5 text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                      className="flex items-center gap-2.5 w-full px-3.5 py-2.5 text-[12px] text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50/60 dark:hover:bg-red-500/[0.08] transition-all duration-100"
                     >
-                      <FaSignOutAlt className="h-3.5 w-3.5" /> Log out
+                      <FaSignOutAlt className="h-3 w-3" /> Log out
                     </button>
                   </div>
                 </div>
@@ -627,9 +634,9 @@ const Header: React.FC<HeaderProps> = ({
             className="fixed inset-0 flex items-start justify-center pt-[10vh] px-3 sm:px-4 overflow-y-auto pointer-events-none"
             style={{ zIndex: 10000 }}
           >
-            <div className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden my-4 pointer-events-auto">
+            <div className="w-full max-w-2xl rounded-2xl border border-slate-200/70 dark:border-slate-700/40 bg-white dark:bg-[#111827] shadow-2xl shadow-black/10 dark:shadow-black/60 overflow-hidden my-4 pointer-events-auto">
               {/* Search Input */}
-              <div className="flex items-center gap-3 px-3 sm:px-4 py-3 sm:py-4 border-b border-slate-200 dark:border-white/8">
+              <div className="flex items-center gap-3 px-3 sm:px-4 py-3 sm:py-4 border-b border-slate-200/60 dark:border-slate-700/30">
                 <FaSearch className="h-4 w-4 text-slate-400 flex-shrink-0" />
                 <input
                   type="text"
